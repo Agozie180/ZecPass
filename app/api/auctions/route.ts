@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAuctionRecord, listAuctions } from "@/lib/board/store";
 
+// The board is live state, never statically cached.
+export const dynamic = "force-dynamic";
+
 /** GET /api/auctions — every auction on the public board, newest first. */
 export async function GET() {
   const auctions = await listAuctions();

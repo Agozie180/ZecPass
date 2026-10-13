@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { acceptSealedBid, createAuction, type Auction, type SealedBidRecord } from "@/lib/domain/auction";
 import seedData from "./seed-data.json";
@@ -13,11 +14,15 @@ import seedData from "./seed-data.json";
  * the board; the stored proofs are checked in each visitor's own browser, so
  * the server never has to be trusted with the checking.
  *
- * Storage is one JSON file on disk. It is deliberately simple and swappable:
- * replace `readBoard`/`writeBoard` with a database and nothing else changes.
+ * Storage is one JSON file. It prefers `data/board.json`, falls back to the OS
+ * temp dir on a read-only/serverless filesystem, and finally to an in-memory
+ * copy — so a one-click deploy never crashes. Reads fall back to the committed
+ * demo seed. The board is a demo surface, not a system of record; swap these two
+ * functions for a database and nothing else changes.
  */
 
-const BOARD_PATH = path.join(process.cwd(), "data", "board.json");
+const PRIMARY_PATH = path.join(process.cwd(), "data", "board.json");
+const FALLBACK_PATH = path.join(os.tmpdir(), "zecpass-board.json");
 
 /** Caps keep a public, unauthenticated board from becoming a dumping ground. */
 const MAX_AUCTIONS = 500;
@@ -56,18 +61,27 @@ export type AuctionSummary = Omit<BoardAuction, "sealedBids" | "reveals"> & {
 
 type Board = { auctions: BoardAuction[] };
 
-async function readBoard(): Promise<Board> {
-  try {
-    const raw = await fs.readFile(BOARD_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Board;
-    if (!parsed || !Array.isArray(parsed.auctions)) return { auctions: [] };
-    return parsed;
-  } catch {
-    // No live board yet: start from the committed demo seed (real, verifiable
-    // proofs) so the board is populated on first load. The first write persists
-    // this to board.json, after which the seed is no longer consulted.
-    return structuredClone(seedData as unknown as Board);
+// Last-resort store when no filesystem location is writable (locked-down
+// serverless): persists for the warm instance's lifetime.
+let memoryBoard: Board | null = null;
+
+async function readStored(): Promise<Board | null> {
+  for (const p of [PRIMARY_PATH, FALLBACK_PATH]) {
+    try {
+      const parsed = JSON.parse(await fs.readFile(p, "utf8")) as Board;
+      if (parsed && Array.isArray(parsed.auctions)) return parsed;
+    } catch {
+      // Not here — try the next location.
+    }
   }
+  return memoryBoard;
+}
+
+async function readBoard(): Promise<Board> {
+  // Nothing stored yet: start from the committed demo seed (real, verifiable
+  // proofs) so the board is populated on first load. The first successful write
+  // persists over it, after which the seed is no longer consulted.
+  return (await readStored()) ?? structuredClone(seedData as unknown as Board);
 }
 
 // Writes are serialised through one promise chain so two concurrent requests
@@ -81,10 +95,18 @@ function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
 }
 
 async function writeBoard(board: Board): Promise<void> {
-  await fs.mkdir(path.dirname(BOARD_PATH), { recursive: true });
-  const tmp = `${BOARD_PATH}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(board, null, 2), "utf8");
-  await fs.rename(tmp, BOARD_PATH);
+  memoryBoard = board; // keep the latest in memory as a guaranteed fallback
+  for (const p of [PRIMARY_PATH, FALLBACK_PATH]) {
+    try {
+      await fs.mkdir(path.dirname(p), { recursive: true });
+      const tmp = `${p}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(board, null, 2), "utf8");
+      await fs.rename(tmp, p);
+      return;
+    } catch {
+      // Not writable here — try the next location; memory already holds it.
+    }
+  }
 }
 
 export async function listAuctions(): Promise<AuctionSummary[]> {
