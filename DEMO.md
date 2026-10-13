@@ -17,6 +17,18 @@ Open http://localhost:3000. That is the whole setup. The app runs on Zcash
 Barretenberg CRS from `crs.aztec.network` on first use, so keep the browser
 online.
 
+## 90-second script (for the recorded demo)
+
+Lead with the moment a judge can't forget: the math refusing a lie.
+
+- **0:00–0:10 — Hook.** Open `/playground`. "A sealed bid is a zero-knowledge proof — watch." Drag the slider, click **Seal my bid**.
+- **0:10–0:35 — The split.** When the proof lands, point at the two columns: "My bid, 50 ZEC, is on the left, in my browser. On the right is everything the world sees — a commitment, a nullifier, a ~14 KB proof, the range it proves. No amount. And it verified *in my browser*, not on a server."
+- **0:35–0:55 — Try to cheat (the unfakeable moment).** Click **Seal a bid below the reserve** → "The circuit refuses: a dishonest bid has no proof." Click **Reveal a different number** → "I can't lie at reveal either. Soundness isn't a check you can skip; it's the only thing that convinces anyone, and it can't be built for a false statement."
+- **0:55–1:20 — A real auction on Zcash.** Go to `/`. "A live board of real sealed bids — commitments only." Open an auction, click **Verify proof** (→ proof valid). Point at **Deliver it over Zcash**: "the bid reaches the seller in a shielded ZIP‑321 memo — nobody watching the chain sees who bid on what."
+- **1:20–1:30 — Settle.** Open Settlement, **Verify reveals** → the outcome shows the winning bid and the second-price clearing price. "Winner determination on proofs you verified yourself. Zcash has no contracts, so this is off-chain by design. The price is public; the bidders are not."
+
+Record a few takes — the cheat-refusal is the shot that has to land.
+
 ## Part 1 — the Playground (prove it to yourself, no wallet)
 
 From the landing page click **Try it — prove a bid**, or go to
