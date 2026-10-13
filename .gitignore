@@ -1,0 +1,21 @@
+node_modules
+.next
+out
+.env
+.env.local
+coverage
+target
+.tooling
+*.wasm
+*.proof
+*.tsbuildinfo
+circuits/**/target
+*.tsbuildinfo
+.env.local
+data/
+public/vendor/
+
+# Local AI/agent instruction and scratch files — never published
+CLAUDE.md
+AGENTS.md
+.claude/
