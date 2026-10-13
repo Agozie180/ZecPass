@@ -1,0 +1,7 @@
+[package]
+name = "open_bid"
+type = "bin"
+authors = ["ZecPass"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
