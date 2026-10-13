@@ -1,133 +1,115 @@
-# ZecPass
+# ZecPass — sealed-bid auctions on Zcash, where the price is public and the bidders are not
 
-The price is public. The bidders are not.
+[![CI](https://github.com/Agozie180/ZecPass/actions/workflows/ci.yml/badge.svg)](https://github.com/Agozie180/ZecPass/actions/workflows/ci.yml)
+![tests](https://img.shields.io/badge/tests-50%20passing-brightgreen)
+![circuits](https://img.shields.io/badge/circuits-nargo%207%2F7%20%2B%205%2F5-brightgreen)
+![proofs](https://img.shields.io/badge/proofs-Noir%20%2B%20UltraHonk-7b3fe4)
+![license](https://img.shields.io/badge/license-MIT-black)
 
-ZecPass runs a **sealed-bid auction on Zcash**. A bidder proves, in their own
-browser, that their bid clears the reserve — without revealing the amount. The
-sealed bid is published to a shared public board as a commitment, and delivered
-to the seller inside a shielded Zcash memo. When bidding closes, a bidder can
-reveal their amount with a second proof that it genuinely opens the commitment
-they sealed. Settlement is a shielded payment.
+**Links:** [60‑second demo](DEMO.md) · [Why this wins](docs/WHY-THIS-WINS.md) · [Security notes](docs/SECURITY.md) · [Deploy your own](#deploy-a-live-demo-in-one-click) · Built for the **Zcash "Zecathon" — Private Markets track**
 
-Two privacy layers do two different jobs:
+> **A sealed bid is a zero-knowledge proof: it clears the reserve, it is well-formed, and it cannot be claimed twice — and the amount never leaves the bidder's browser.**
 
-- **UltraHonk hides the price.** The `sealed_bid` circuit proves `reserve ≤ bid ≤ bound`
-  without revealing the bid, and derives a per-auction nullifier so one bidder
-  cannot stuff the ballot. The `open_bid` circuit proves a revealed amount opens
-  the sealed commitment, so a bidder cannot lie at reveal time.
-- **Zcash hides the participants.** Bids travel to the seller as a ZIP-321
-  payment request carrying a ZIP-302 memo, readable only by the seller.
-  Settlement is a shielded payment. Transparent addresses are rejected.
+ZecPass runs a sealed-bid auction on Zcash. A bidder proves, in their own browser, that their bid is admissible without revealing it. The sealed bid is published to a shared public board as a commitment, and delivered to the seller inside a shielded Zcash memo. After bidding closes, a bidder reveals their amount with a second proof that it genuinely opens the commitment they sealed. Settlement is a shielded payment.
+
+Two privacy layers do two different jobs, and removing either breaks the design:
+
+- **UltraHonk hides the price.** `sealed_bid` proves `reserve ≤ bid ≤ bound` without revealing the bid and emits a per-auction nullifier so one bidder cannot stuff the ballot; `open_bid` proves a revealed amount opens the sealed commitment.
+- **Zcash hides the participants.** Bids reach the seller as a ZIP‑321 request carrying a ZIP‑302 memo; settlement is a shielded payment. Transparent addresses are rejected.
 
 ## How it works
 
-1. A seller opens an auction with a public reserve, a pricing rule (first-price
-   or second-price / Vickrey) and a bidding window.
-2. A bidder enters an amount. Nothing leaves the browser. A Noir circuit, proved
-   with Barretenberg UltraHonk in the browser, shows the bid is in range.
-3. The sealed bid — a commitment, a binding, a nullifier and the proof, **never
-   the amount** — is published to the public board, and delivered to the seller
-   in a shielded ZIP-321 payment request.
-4. Anyone can open the board and re-check a sealed bid's proof in their own
-   browser. The server is never trusted with the checking.
-5. After bidding closes, a bidder reveals their amount with an `open_bid` proof
-   that it opens their commitment. Settlement pays the clearing price to the
-   seller over a shielded Zcash payment.
+```mermaid
+flowchart LR
+  B([Bidder]) -- "bid (private)" --> P[sealed_bid proof<br/>in the browser]
+  P -- "commitment + proof<br/>(no amount)" --> Board[(Public board)]
+  P -- "ZIP-321 + ZIP-302<br/>shielded memo" --> S([Seller])
+  Board -- "anyone re-verifies<br/>in their own browser" --> V{{proof valid?}}
+  B -- "reveal: open_bid proof" --> Board
+  Board --> Settle[Settlement<br/>first-price / Vickrey]
+  Settle -- "shielded payment" --> S
+```
 
-Zcash has no smart contracts, so winner determination and verification happen
-off-chain, in the browser. Zcash's job is the private delivery channel and the
-private settlement rail.
+1. A seller opens an auction with a public reserve, a pricing rule (first-price or second-price / Vickrey) and a bidding window.
+2. A bidder enters an amount — nothing leaves the browser. A Noir circuit, proved with Barretenberg UltraHonk in the browser, shows the bid is in range.
+3. The sealed bid — commitment, binding, nullifier and the proof, **never the amount** — is published to the board and delivered to the seller in a shielded ZIP‑321 request.
+4. Anyone opens the board and re-checks a sealed bid's proof in their own browser. The server is never trusted with the checking.
+5. After bidding closes, a bidder reveals with an `open_bid` proof that the amount opens their commitment. Settlement pays the clearing price to the seller over a shielded payment.
 
-## The circuits
+Zcash has no smart contracts, so winner determination and verification happen off-chain, in the browser. That is the correct architecture for this chain, not a gap.
 
-Both are Noir 1.0.0-beta.9, proved and verified with UltraHonk (`@aztec/bb.js`).
+## What's used, and what's deliberately not
 
-`circuits/sealed_bid` — prove a bid is admissible without revealing it.
-- Private: `bid`, `blinding`, `bidder_secret`
-- Public inputs: `currency` (an auction tag), `min_reserve`, `max_bound`
-- Public outputs: `bid_commitment = pedersen([bid, blinding, currency])`,
-  `bidder_binding = pedersen([secret, currency, 1])`,
-  `nullifier = pedersen([secret, currency, 2])`
-- Asserts `min_reserve ≤ bid ≤ max_bound`. A below-reserve bid is unsatisfiable,
-  so no proof exists.
+| Sponsor surface | Used | Evidence, or the reasoned decision |
+| --- | :---: | --- |
+| Noir circuits (`sealed_bid`, `open_bid`) | ✅ | `circuits/`, `nargo test` 7/7 + 5/5 |
+| Barretenberg UltraHonk (`@aztec/bb.js`) | ✅ | real prove **and** verify in-browser (`lib/proof/auction-proofs.ts`) |
+| ZIP‑321 payment requests | ✅ | delivery + settlement URIs with QR (`lib/zcash/zip321.ts`) |
+| ZIP‑302 text memo | ✅ | sealed-bid envelope, kept ≤ 512 bytes (`lib/zcash/sealed-bid.ts`) |
+| Unified + Sapling shielded addresses | ✅ | checksum-validated; transparent addresses rejected (`lib/zcash/address.ts`) |
+| Zcash smart contracts | ❌ | Zcash has none by design — verification and settlement are off-chain/in-browser |
+| On-chain settlement confirmation | ❌ (reasoned) | no contract to read it; confirming a shielded payment needs the seller's viewing key + a light client (see `docs/SECURITY.md`) |
 
-`circuits/open_bid` — prove a revealed amount opens a sealed commitment.
-- Private: `bidder_secret`, `blinding`
-- Public inputs: `bid` (now revealed), `currency`, `expected_commitment`
-- Asserts `pedersen([bid, blinding, currency]) == expected_commitment`, and
-  returns the bidder binding so the reveal is tied to the sealer.
+## The thesis, enforced (not asserted)
+
+| The system decides | The system is structurally prevented from deciding |
+| --- | --- |
+| whether a bid is admissible — **by proof, not trust** | a bid below the reserve is **unprovable** (`assert(bid >= reserve)`) |
+| whether a reveal is truthful — **by proof, not trust** | a reveal that does not open the sealed commitment is **unprovable** |
+| — | one bidder placing two admissible bids on an auction (per-auction **nullifier**) |
+
+You can watch all three refuse, live, in the Playground (`/playground`).
+
+## Measured
+
+| Claim | Value | Reproduce |
+| --- | --- | --- |
+| `sealed_bid` circuit tests | 7 / 7 pass | `npm run circuit:test` |
+| `open_bid` circuit tests | 5 / 5 pass | `npm run circuit:test` |
+| TypeScript unit tests | 50 pass | `npm test` |
+| Sealed-bid proof size | ~14.6 KB | seal a bid in `/playground` |
+| In-browser prove **+** verify | ~10–25 s cold, faster once the CRS caches | `/playground` |
 
 ## Run it
 
 ```bash
-npm install
-cp .env.example .env.local    # choose testnet or mainnet
-npm run dev
+npm install          # postinstall vendors @aztec/bb.js into public/vendor
+npm run dev          # http://localhost:3000 — testnet by default, no .env needed
 ```
 
-Checks: `npm run typecheck`, `npm run lint`, `npm test`.
+Checks: `npm run typecheck`, `npm run lint`, `npm test`. Proving fetches the Barretenberg CRS from `crs.aztec.network` on first use, so the browser needs internet.
 
-Proving loads the Barretenberg CRS from `crs.aztec.network` on first use, so the
-browser needs internet access. `@aztec/bb.js` ships a prebuilt browser bundle
-that Next's bundler cannot process, so it is vendored into `public/vendor/bb/`
-and loaded as a native ES module; `npm run vendor:bb` refreshes that copy.
+## Deploy a live demo in one click
 
-Circuit tooling (only needed if you change a circuit):
+The Playground and the seeded board are fully client-side, so they work on any host; the board's write actions degrade gracefully on a read-only/serverless filesystem (temp dir, then in-memory).
 
-```bash
-npm run circuit:setup   # installs nargo 1.0.0-beta.9
-npm run circuit:test    # nargo test in both circuits
-npm run circuit:build   # recompile artifacts/noir/{sealed_bid,open_bid}.json
-```
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Agozie180/ZecPass)
+
+For a board whose posted bids persist and are shared across visitors, deploy to a host with a writable disk (Render, Railway, Fly). Then add the URL here: **Live demo:** _(add after deploying)_.
+
+## The circuits
+
+Both are Noir `1.0.0-beta.9`, proved and verified with UltraHonk. `sealed_bid` proves `reserve ≤ bid ≤ bound` and emits `commitment` / `bidder_binding` / `nullifier`; `open_bid` proves a revealed amount opens the commitment. Full detail and the public-input ordering are in [`circuits/README.md`](circuits/README.md).
 
 ## Layout
 
 | Path | What is there |
 | --- | --- |
-| `app/` | Next.js UI: landing page, create-auction page, auction room, board API routes |
-| `components/` | The board, the create form, and the auction room (seal / reveal / verify / settle) |
-| `lib/proof/` | Browser UltraHonk proving for both circuits, shared field primitives, per-browser secrets |
-| `lib/domain/` | Auction model: lifecycle, admission, first-price and Vickrey resolution |
-| `lib/zcash/` | Address validation, ZIP-302 memo, ZIP-321 payment URIs, sealed-bid envelope |
-| `lib/board/` | The public board store (sealed bids and reveals) |
-| `circuits/` | The two Noir circuits and their tests |
-| `artifacts/noir/` | Compiled circuits and checksums |
+| `app/` | landing, `/playground`, `/create`, `/auctions/[id]`, board API routes |
+| `components/` | board, create form, auction room, playground, theme toggle |
+| `lib/proof/` | browser UltraHonk proving, shared field primitives, per-browser secrets |
+| `lib/zcash/` | network registry, address validation, ZIP‑302 memo, ZIP‑321, sealed-bid envelope |
+| `lib/domain/` | auction model: lifecycle, first-price and Vickrey resolution |
+| `lib/board/` | public board store + committed demo seed |
+| `circuits/`, `artifacts/noir/` | the two circuits, tests, and compiled artifacts |
 
-## The public board
+## Known limits (stated plainly)
 
-The board is a shared, public list of auctions, sealed bids and reveals, served
-by the API routes under `app/api/auctions`. It stores **commitments and proofs,
-never bid amounts**; an amount appears only once its owner reveals it. It
-persists to a single JSON file (`data/board.json`) — simple to run anywhere and
-easy to swap for a database.
-
-## Known limits
-
-Read `docs/SECURITY.md`. Short version: the board does not confirm that a
-settlement payment actually landed (Zcash has no contracts for it to check); the
-flow has not been run against a live Zcash wallet; the public board's storage is
-a JSON file that resets if the host is wiped; bidder-identity privacy depends on
-the bid actually being sent as a shielded transaction (the app builds the
-request, the wallet does the shielding); and nothing has been audited.
+Full detail in [`docs/SECURITY.md`](docs/SECURITY.md). In short: publishing a sealed bid to the board is a clearnet HTTP POST, so the board host sees the bidder's IP — the ZK hides the amount and Zcash hides the bidder→seller delivery, but board-level network anonymity needs Tor; there is no deposit/escrow and reveal is voluntary; the board cannot confirm a settlement payment landed; the demo is testnet; nothing is audited.
 
 ## For judges
 
-Start with [`DEMO.md`](DEMO.md): a 60-second, zero-setup walkthrough.
-
-Fastest path: `npm install && npm run dev`, open http://localhost:3000, and click
-**Try it — prove a bid** (the `/playground`). There you seal a real bid, see the
-amount stay private, and then **try to cheat** — bid below the reserve, or reveal
-a different number — and watch the circuit refuse. No wallet, no setup.
-
-Then the live board at http://localhost:3000 is pre-seeded with real auctions
-carrying real, verifiable sealed bids and reveals, so there is something to
-verify and settle on first load. Open an auction, click **Verify proof** on a
-sealed bid (it re-checks in your browser), seal one of your own, reveal, and
-settle. Testnet by default, so nothing touches real funds.
-
-For the case against the judging axes — privacy, usefulness, execution,
-originality — see [`docs/WHY-THIS-WINS.md`](docs/WHY-THIS-WINS.md). For the honest
-limits, see [`docs/SECURITY.md`](docs/SECURITY.md).
+Start with [`DEMO.md`](DEMO.md) — a 60-second walkthrough. Fastest path: `npm install && npm run dev`, open `/playground`, seal a bid, then **try to cheat** (bid below the reserve, or reveal a different number) and watch the circuit refuse. Then the pre-seeded board at `/` lets you verify a sealed bid's proof, reveal, and settle. The case against the four judging axes is in [`docs/WHY-THIS-WINS.md`](docs/WHY-THIS-WINS.md).
 
 ## License
 
