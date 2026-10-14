@@ -69,6 +69,7 @@ You can watch all three refuse, live, in the Playground (`/playground`).
 | TypeScript unit tests | 50 pass | `npm test` |
 | Sealed-bid proof size | ~14.6 KB | seal a bid in `/playground` |
 | In-browser prove **+** verify | ~10–25 s cold, faster once the CRS caches | `/playground` |
+| Full round trip (create → seal → board → re-verify → reveal → settle) | passes in a real browser | the [live demo](https://zec-pass.vercel.app), or `npm run dev` and walk it |
 
 ## Run it
 

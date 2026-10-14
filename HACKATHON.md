@@ -61,6 +61,6 @@ delivery; a public board makes the sealed commitments auditable by anyone.
    prove the bidder can pay), reveal is voluntary, and the board cannot confirm
    settlement landed. Decide how much of this to build vs. disclose.
 4. **Execution.** Browser proving is verified end-to-end (real proof generated and
-   verified in a headless browser). Still needed: the full create→seal→board→
-   reveal→settle round trip exercised live, a real testnet wallet test, and a
-   demo video.
+   verified in a headless browser), and the full create→seal→board→reveal→settle
+   round trip has been exercised in a real browser. Still needed: a real testnet
+   wallet test (a ZIP‑321 payment to a funded wallet) and a demo video.
