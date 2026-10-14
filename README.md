@@ -81,11 +81,13 @@ Checks: `npm run typecheck`, `npm run lint`, `npm test`. Proving fetches the Bar
 
 ## Deploy a live demo in one click
 
+**Live demo:** https://zec-pass.vercel.app
+
 The Playground and the seeded board are fully client-side, so they work on any host; the board's write actions degrade gracefully on a read-only/serverless filesystem (temp dir, then in-memory).
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Agozie180/ZecPass)
 
-**Shared, persistent board on Vercel:** add a KV store so posted bids persist and are shared across visitors and serverless instances. In the Vercel dashboard → Storage, add **Upstash for Redis** (or Vercel KV) — it sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically; redeploy and the board uses them (it also accepts `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`). Without a KV store the Playground and the seeded board still work, but bids posted on a serverless host are per-instance and may not persist. Add your URL here once deployed: **Live demo:** _(add after deploying)_.
+**Shared, persistent board on Vercel:** the live demo runs with Upstash for Redis connected, so posted bids are shared across visitors and serverless instances rather than living on one instance's disk. To set this up on your own deploy: in the Vercel dashboard → Storage, add **Upstash for Redis** (or Vercel KV) — it sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically; redeploy and the board uses them (it also accepts `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`). Without a KV store the Playground and the seeded board still work, but bids posted on a serverless host are per-instance and may not persist.
 
 ## The circuits
 

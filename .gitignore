@@ -19,3 +19,8 @@ public/vendor/
 CLAUDE.md
 AGENTS.md
 .claude/
+.agents/
+skills-lock.json
+
+.vercel
+.env*
