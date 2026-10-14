@@ -53,3 +53,44 @@ export function getBidBlinding(auctionId: string): string {
     return memorySecret;
   }
 }
+
+/**
+ * A fresh, independent bidder identity for a single sealed bid.
+ *
+ * On the public board a person is free to bid as several bidders (sybil
+ * resistance is per-secret, not per-person — see docs/SECURITY.md), so each bid
+ * on the board gets its own secret and blinding. That is also what lets one
+ * tester run a genuinely competitive auction. The identity is remembered locally
+ * (`rememberBid`) so the bid can be revealed later without retyping anything.
+ */
+export type BidIdentity = { secret: string; blinding: string };
+export type RememberedBid = BidIdentity & { amount: number; auctionId: string };
+
+const BID_PREFIX = "zecpass.bid.";
+
+export function createBidIdentity(): BidIdentity {
+  return { secret: randomSecretHex(), blinding: randomSecretHex() };
+}
+
+export function rememberBid(commitment: string, bid: RememberedBid): void {
+  try {
+    window.localStorage.setItem(`${BID_PREFIX}${commitment}`, JSON.stringify(bid));
+  } catch {
+    // Storage blocked: this bid just cannot be auto-revealed on this device.
+  }
+}
+
+/** The stored identity for a bid this browser placed, or null if it did not place it. */
+export function recallBid(commitment: string): RememberedBid | null {
+  try {
+    const raw = window.localStorage.getItem(`${BID_PREFIX}${commitment}`);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<RememberedBid>;
+    if (isValidSecret(value.secret) && isValidSecret(value.blinding) && Number.isInteger(value.amount)) {
+      return value as RememberedBid;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

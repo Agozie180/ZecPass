@@ -70,6 +70,8 @@ export async function proveSealedBid(args: {
   minReserve: number;
   maxBound: number;
   allowOutOfRange?: boolean;
+  bidderSecret?: string;
+  blinding?: string;
   onProgress?: ProofProgress;
 }): Promise<SealedBidProof> {
   assertBrowserSupport();
@@ -100,8 +102,8 @@ export async function proveSealedBid(args: {
   const { witness, returnValue } = await phase("Generating sealed bid witness", args.onProgress, async () =>
     noir.execute({
       bid: args.bid,
-      blinding: toCircuitField(getBidBlinding(args.auctionId)),
-      bidder_secret: toCircuitField(getBidderSecret()),
+      blinding: toCircuitField(args.blinding ?? getBidBlinding(args.auctionId)),
+      bidder_secret: toCircuitField(args.bidderSecret ?? getBidderSecret()),
       currency: toCircuitField(currency),
       min_reserve: args.minReserve,
       max_bound: args.maxBound,
@@ -151,6 +153,8 @@ export async function proveOpenBid(args: {
   auctionId: string;
   bid: number;
   commitment: string;
+  bidderSecret?: string;
+  blinding?: string;
   onProgress?: ProofProgress;
 }): Promise<OpenBidProof> {
   assertBrowserSupport();
@@ -171,8 +175,8 @@ export async function proveOpenBid(args: {
 
   const { witness, returnValue } = await phase("Generating reveal witness", args.onProgress, async () =>
     noir.execute({
-      bidder_secret: toCircuitField(getBidderSecret()),
-      blinding: toCircuitField(getBidBlinding(args.auctionId)),
+      bidder_secret: toCircuitField(args.bidderSecret ?? getBidderSecret()),
+      blinding: toCircuitField(args.blinding ?? getBidBlinding(args.auctionId)),
       bid: args.bid,
       currency: toCircuitField(currency),
       expected_commitment: toCircuitField(args.commitment),

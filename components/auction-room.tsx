@@ -12,6 +12,7 @@ import { buildBidDeliveryUri, buildSealedBidMemo } from "@/lib/zcash/sealed-bid"
 import { DEFAULT_REQUEST_ZAT, ZCASH_NETWORK, shortId } from "@/lib/zcash/config";
 import { memoByteLength } from "@/lib/zcash/memo";
 import { proveSealedBid, proveOpenBid, verifySealedBidProof, verifyOpenBidProof } from "@/lib/proof/auction-proofs";
+import { createBidIdentity, recallBid, rememberBid } from "@/lib/proof/bidder-secret";
 import type { BoardAuction } from "@/lib/board/store";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -95,13 +96,20 @@ function BidPanel({ auction, open, onPosted }: { auction: BoardAuction; open: bo
     setError(null);
     setStep("proving");
     try {
+      // Each bid on the board is its own bidder, so one person can run a real
+      // competitive auction. The identity is remembered locally so the bid can be
+      // revealed in one click later, with no amount to retype.
+      const identity = createBidIdentity();
       const proof = await proveSealedBid({
         auctionId: auction.id,
         bid,
         minReserve: auction.reservePrice,
         maxBound: Math.max(maxBound, bid),
+        bidderSecret: identity.secret,
+        blinding: identity.blinding,
         onProgress: setMessage,
       });
+      rememberBid(proof.commitment, { ...identity, amount: bid, auctionId: auction.id });
       setResult({ ...proof, proofCommitment: proof.proofCommitment, proofHex: proof.proofBytesHex });
       setStep("bundle");
     } catch (e) {
@@ -178,6 +186,19 @@ function BidPanel({ auction, open, onPosted }: { auction: BoardAuction; open: bo
     link.download = `${shortId(auction.id)}.sealed-bid.json`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Let a tester place several bids in one sitting (each a new bidder), so a
+  // competitive auction and a real settlement can be built from one browser.
+  const resetForm = () => {
+    setStep("form");
+    setResult(null);
+    setPosted(false);
+    setMemo("");
+    setDeliveryUri(null);
+    setQr(null);
+    setError(null);
+    setBid(auction.reservePrice * 2);
   };
 
   if (!open && step === "form") {
@@ -269,6 +290,11 @@ function BidPanel({ auction, open, onPosted }: { auction: BoardAuction; open: bo
               )}
             </div>
           </div>
+          {posted && (
+            <div className="room-actions">
+              <button className="ghost" onClick={resetForm}>Place another bid (new bidder) <ArrowRight size={14} /></button>
+            </div>
+          )}
         </div>
       )}
 
@@ -286,6 +312,13 @@ function SealedBids({
   // taken on the server's word: the range proof is the only reason to believe
   // the hidden bid is admissible.
   const [checked, setChecked] = useState<Record<string, boolean | "checking">>({});
+
+  // Which sealed bids this browser placed (and can therefore reveal). Computed
+  // after mount so the server and client markup agree.
+  const [mine, setMine] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setMine(new Set(auction.sealedBids.filter((b) => recallBid(b.commitment)).map((b) => b.commitment)));
+  }, [auction.sealedBids]);
 
   const checkBid = async (b: BoardAuction["sealedBids"][number]) => {
     setChecked((c) => ({ ...c, [b.commitment]: "checking" }));
@@ -328,8 +361,10 @@ function SealedBids({
                 </span>
                 {revealed ? (
                   <span className="sealed-open"><Eye size={13} /> {fmt(reveal?.amount ?? 0)} {auction.currency}</span>
-                ) : (
+                ) : mine.has(b.commitment) ? (
                   <RevealControls auction={auction} commitment={b.commitment} onPosted={onPosted} />
+                ) : (
+                  <span className="sealed-when">sealed</span>
                 )}
               </li>
             );
@@ -341,21 +376,30 @@ function SealedBids({
 }
 
 function RevealControls({ auction, commitment, onPosted }: { auction: BoardAuction; commitment: string; onPosted: () => void }) {
-  const [amount, setAmount] = useState(auction.reservePrice);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // This browser placed the bid, so it holds the identity and the amount: reveal
+  // is one click, with nothing to retype and no way to open it to a wrong number.
+  const remembered = recallBid(commitment);
 
   const reveal = async () => {
+    if (!remembered) return;
     setBusy(true);
     setError(null);
     try {
-      const proof = await proveOpenBid({ auctionId: auction.id, bid: amount, commitment });
+      const proof = await proveOpenBid({
+        auctionId: auction.id,
+        bid: remembered.amount,
+        commitment,
+        bidderSecret: remembered.secret,
+        blinding: remembered.blinding,
+      });
       const res = await fetch(`/api/auctions/${encodeURIComponent(auction.id)}/reveals`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           commitment,
-          amount,
+          amount: remembered.amount,
           bidderBinding: proof.bidderBinding,
           proofHex: proof.proofBytesHex,
           publicInputs: proof.publicInputs,
@@ -371,15 +415,12 @@ function RevealControls({ auction, commitment, onPosted }: { auction: BoardAucti
     }
   };
 
+  if (!remembered) return null;
+
   return (
     <span className="sealed-reveal">
-      <input
-        type="number" min={0} step={1} value={amount}
-        onChange={(e) => setAmount(Number(e.target.value))}
-        aria-label="Amount to reveal"
-      />
       <button className="ghost" onClick={reveal} disabled={busy}>
-        {busy ? <LoaderCircle className="spin" size={13} /> : <Eye size={13} />} Reveal
+        {busy ? <LoaderCircle className="spin" size={13} /> : <Eye size={13} />} Reveal {fmt(remembered.amount)} {auction.currency}
       </button>
       {error && <em className="warn">{error}</em>}
     </span>
@@ -405,12 +446,15 @@ function Settlement({ auction }: { auction: BoardAuction }) {
     }
   }, [auction.reveals]);
 
-  const confirmed = useMemo(
-    () => auction.reveals.filter((r) => verified[r.commitment] === true),
-    [auction.reveals, verified],
-  );
-
   const outcome = useMemo(() => {
+    // Only settle once every reveal has a final verdict, so the clearing price is
+    // never shown mid-verification (where fewer confirmed bids read as a lower
+    // second price).
+    const settled =
+      auction.reveals.length > 0 &&
+      auction.reveals.every((r) => verified[r.commitment] === true || verified[r.commitment] === "invalid");
+    if (!settled) return null;
+    const confirmed = auction.reveals.filter((r) => verified[r.commitment] === true);
     if (confirmed.length === 0) return null;
     // Settlement runs on the reveals whose proofs checked out in this browser.
     return resolveAuction(
@@ -418,7 +462,7 @@ function Settlement({ auction }: { auction: BoardAuction }) {
       auction.sealedBids,
       confirmed.map((r) => ({ auctionId: auction.id, commitment: r.commitment, amount: r.amount, bidderBinding: r.bidderBinding })),
     );
-  }, [auction, confirmed]);
+  }, [auction, verified]);
 
   return (
     <section className="room-panel">

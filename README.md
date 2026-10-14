@@ -56,7 +56,7 @@ Zcash has no smart contracts, so winner determination and verification happen of
 | --- | --- |
 | whether a bid is admissible — **by proof, not trust** | a bid below the reserve is **unprovable** (`assert(bid >= reserve)`) |
 | whether a reveal is truthful — **by proof, not trust** | a reveal that does not open the sealed commitment is **unprovable** |
-| — | one bidder placing two admissible bids on an auction (per-auction **nullifier**) |
+| — | the same bidder identity being counted twice on an auction (per-auction **nullifier**; one person may hold several identities — see [Security](docs/SECURITY.md)) |
 
 You can watch all three refuse, live, in the Playground (`/playground`).
 
@@ -85,7 +85,7 @@ The Playground and the seeded board are fully client-side, so they work on any h
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Agozie180/ZecPass)
 
-For a board whose posted bids persist and are shared across visitors, deploy to a host with a writable disk (Render, Railway, Fly). Then add the URL here: **Live demo:** _(add after deploying)_.
+**Shared, persistent board on Vercel:** add a KV store so posted bids persist and are shared across visitors and serverless instances. In the Vercel dashboard → Storage, add **Upstash for Redis** (or Vercel KV) — it sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically; redeploy and the board uses them (it also accepts `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`). Without a KV store the Playground and the seeded board still work, but bids posted on a serverless host are per-instance and may not persist. Add your URL here once deployed: **Live demo:** _(add after deploying)_.
 
 ## The circuits
 

@@ -24,6 +24,44 @@ import seedData from "./seed-data.json";
 const PRIMARY_PATH = path.join(process.cwd(), "data", "board.json");
 const FALLBACK_PATH = path.join(os.tmpdir(), "zecpass-board.json");
 
+// On a serverless host a disk is not shared between instances, so for a real
+// shared board set a KV store: Vercel KV or Upstash Redis (either env pair).
+// Without it, the board still works per-instance via the paths above.
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const KV_KEY = "zecpass:board:v1";
+const kvEnabled = Boolean(KV_URL && KV_TOKEN);
+
+async function kvGet(): Promise<Board | null> {
+  try {
+    const res = await fetch(`${KV_URL}/get/${KV_KEY}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { result?: string | null };
+    if (!data.result) return null;
+    const parsed = JSON.parse(data.result) as Board;
+    return parsed && Array.isArray(parsed.auctions) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function kvSet(board: Board): Promise<boolean> {
+  try {
+    const res = await fetch(`${KV_URL}/set/${KV_KEY}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
+      body: JSON.stringify(board),
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Caps keep a public, unauthenticated board from becoming a dumping ground. */
 const MAX_AUCTIONS = 500;
 const MAX_SEALED_BIDS = 200;
@@ -66,6 +104,7 @@ type Board = { auctions: BoardAuction[] };
 let memoryBoard: Board | null = null;
 
 async function readStored(): Promise<Board | null> {
+  if (kvEnabled) return kvGet();
   for (const p of [PRIMARY_PATH, FALLBACK_PATH]) {
     try {
       const parsed = JSON.parse(await fs.readFile(p, "utf8")) as Board;
@@ -96,6 +135,7 @@ function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
 
 async function writeBoard(board: Board): Promise<void> {
   memoryBoard = board; // keep the latest in memory as a guaranteed fallback
+  if (kvEnabled && (await kvSet(board))) return;
   for (const p of [PRIMARY_PATH, FALLBACK_PATH]) {
     try {
       await fs.mkdir(path.dirname(p), { recursive: true });
