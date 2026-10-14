@@ -1,0 +1,11 @@
+# Example inputs for `nargo execute` / `bb prove`.
+# Reveal the bid of 120 sealed in sealed_bid/Prover.toml: the same blinding and
+# currency reproduce `expected_commitment`, which is the `bid_commitment` that
+# sealing (bid=120, blinding=0x07, currency=0x05) returns.
+# Private:
+bidder_secret = "0x09"
+blinding = "0x07"
+# Public:
+bid = "120"
+currency = "0x05"
+expected_commitment = "0x2910e5ef0884f38157d164c109719db30752ce53bc7768cb151883f8614e08b4"

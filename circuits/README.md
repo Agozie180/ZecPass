@@ -53,3 +53,30 @@ npm run circuit:build   # compile both, copy to artifacts/noir, refresh SHA256SU
 
 Proving in the browser downloads the Barretenberg CRS from `crs.aztec.network` on
 first use, so the browser needs internet access.
+
+## Prove from the command line
+
+Proving is not browser-only. With `nargo` (`1.0.0-beta.9`) and Barretenberg
+`bb` (`0.87.0`) installed, you can solve a witness and produce a real UltraHonk
+proof from a shell — handy for CI, for reproducing a proof outside the app, and
+for checking the verifier independently of the vendored `bb.js` bundle. Example
+inputs live in each circuit's `Prover.toml`; `open_bid`'s reveals the bid that
+`sealed_bid`'s seals, so the two round-trip.
+
+```bash
+cd circuits/sealed_bid
+nargo execute witness   # solves target/witness.gz from Prover.toml
+
+bb prove    -s ultra_honk -b ./target/sealed_bid.json -w ./target/witness.gz -o ./target --oracle_hash keccak
+bb write_vk -s ultra_honk -b ./target/sealed_bid.json                        -o ./target --oracle_hash keccak
+bb verify   -s ultra_honk -k ./target/vk -p ./target/proof -i ./target/public_inputs --oracle_hash keccak
+# -> Proof verified successfully   (the proof is 14,592 bytes)
+```
+
+`--oracle_hash keccak` matches the app, which proves with `{ keccak: true }` so a
+proof is checkable by an EVM-style verifier. For `open_bid`, swap in
+`open_bid.json`.
+
+Two gotchas worth knowing: `bb` extracts the bytecode with `jq`, so `jq` must be
+on `PATH`; and `bb` is unhappy reading its inputs from a Windows drive mount, so
+run it on a native Linux filesystem (a WSL home directory, not `/mnt/c`).

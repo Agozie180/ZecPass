@@ -19,6 +19,27 @@ else's commitment without its blinding.
 Both proofs are generated and verified with UltraHonk in the browser, and anyone
 can re-verify a published proof in their own browser from the board.
 
+## The verifier, and what you are trusting
+
+Proving and verification use Barretenberg (`bb`) UltraHonk. In the browser this
+is `@aztec/bb.js`, pinned to `0.87.0` and vendored verbatim from the npm package
+into `public/vendor/bb/` by `scripts/vendor-bb.mjs` (it is not re-bundled — see
+`lib/proof/auction-proofs.ts`). The circuits are Noir `1.0.0-beta.9`.
+
+So verification trust rests on the upstream compiled artifact: ZecPass does not
+re-derive the BN254 pairing or the UltraHonk verifier from source, it runs
+Aztec's. Two things keep that honest and checkable:
+
+- the versions are pinned (bb.js `0.87.0`, Noir `1.0.0-beta.9`) and the vendored
+  bundle is a byte copy of the published package, so it can be diffed against npm
+  or Aztec's `barretenberg` repo at that tag; and
+- the same circuits prove and verify through the standalone `bb` CLI (see
+  `circuits/README.md`), so a reviewer can reproduce a proof and run the native
+  verifier independently of this app's bundle.
+
+Vendoring the Barretenberg Rust and building the verifier from source would close
+the loop entirely. Today it is upstream-trusted — stated plainly, not hidden.
+
 ## Privacy properties
 
 - **The bid amount stays in the browser until reveal.** The public board stores

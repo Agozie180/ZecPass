@@ -1,0 +1,10 @@
+# Example inputs for `nargo execute` / `bb prove`.
+# A bid of 120, sealed in the auction tagged currency = 5, within [100, 150].
+# Private:
+bid = "120"
+blinding = "0x07"
+bidder_secret = "0x09"
+# Public:
+currency = "0x05"
+min_reserve = "100"
+max_bound = "150"
