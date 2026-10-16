@@ -1,38 +1,44 @@
 # ZecPass demo
 
-A 60-second, zero-setup walkthrough for judges. You will prove a real bid in your
-own browser, watch the amount stay private, try to cheat and watch the circuit
-refuse, then settle a sealed-bid auction on the live board. Nothing is mocked —
+A short walkthrough for judges. You will prove a real bid in your own browser,
+watch the amount stay private, try to cheat and watch the circuit refuse, settle
+a sealed-bid auction on the live board, and, if you have a Zcash wallet, deliver
+a sealed bid over Zcash mainnet and read it on the other side. Nothing is mocked:
 every proof is real Noir/UltraHonk, generated and verified in your browser.
 
-## Setup, one command
+## Setup
+
+**Nothing to install:** the live demo at https://zec-pass.vercel.app runs on
+Zcash **mainnet**. Everything except sending a delivery payment is free.
+
+**Or run it locally:**
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. That is the whole setup. The app runs on Zcash
-**testnet** by default, so nothing here touches real funds. Proving downloads the
-Barretenberg CRS from `crs.aztec.network` on first use, so keep the browser
-online.
+Open http://localhost:3000. A local run is on **testnet** by default, so nothing
+there touches real funds. Proving downloads the Barretenberg CRS from
+`crs.aztec.network` on first use, so keep the browser online.
 
 ## 90-second script (for the recorded demo)
 
 Lead with the moment a judge can't forget: the math refusing a lie.
 
 - **0:00–0:10 — Hook.** Open `/playground`. "A sealed bid is a zero-knowledge proof — watch." Drag the slider, click **Seal my bid**.
-- **0:10–0:35 — The split.** When the proof lands, point at the two columns: "My bid, 50 ZEC, is on the left, in my browser. On the right is everything the world sees — a commitment, a nullifier, a ~14 KB proof, the range it proves. No amount. And it verified *in my browser*, not on a server."
-- **0:35–0:55 — Try to cheat (the unfakeable moment).** Click **Seal a bid below the reserve** → "The circuit refuses: a dishonest bid has no proof." Click **Reveal a different number** → "I can't lie at reveal either. Soundness isn't a check you can skip; it's the only thing that convinces anyone, and it can't be built for a false statement."
-- **0:55–1:20 — A real auction on Zcash.** Go to `/`. "A live board of real sealed bids — commitments only." Open an auction, click **Verify proof** (→ proof valid). Point at **Deliver it over Zcash**: "the bid reaches the seller in a shielded ZIP‑321 memo — nobody watching the chain sees who bid on what."
-- **1:20–1:30 — Settle.** Open Settlement, **Verify reveals** → the outcome shows the winning bid and the second-price clearing price. "Winner determination on proofs you verified yourself. Zcash has no contracts, so this is off-chain by design. The price is public; the bidders are not."
+- **0:10–0:30 — The split.** When the proof lands, point at the two columns: "My bid is on the left, in my browser. On the right is everything the world sees — a commitment, a nullifier, a ~14 KB proof, the range it proves. No amount. And it verified *in my browser*, not on a server."
+- **0:30–0:45 — Try to cheat (the unfakeable moment).** Click **Seal a bid below the reserve** → "The circuit refuses: a dishonest bid has no proof." Click **Reveal a different number** → "I can't lie at reveal either."
+- **0:45–1:15 — Deliver it over Zcash mainnet.** Open an auction whose seller address is your wallet, seal a bid, and scan the QR with the phone wallet on camera. Send. Cut to the wallet receiving it and open the memo: "`ZECBID1`, the auction, the commitment on the board. No amount. The seller learns a bid arrived; the chain shows a shielded transaction with no sender, receiver, amount or memo."
+- **1:15–1:30 — Settle.** On a settled auction, **Verify reveals** → the outcome shows the winning bid and the second-price clearing price. "Winner determination on proofs you verified yourself. The price is public; the bidders are not."
 
-Record a few takes — the cheat-refusal is the shot that has to land.
+Record a few takes. The cheat refusal and the memo arriving are the two shots
+that have to land.
 
 ## Part 1 — the Playground (prove it to yourself, no wallet)
 
-From the landing page click **Try it — prove a bid**, or go to
-http://localhost:3000/playground. This is the fastest way to see the whole idea.
+From the landing page click **Try it — prove a bid**, or go to `/playground`
+(on the live demo or locally). This is the fastest way to see the whole idea.
 
 ### Act 1 — seal a bid
 Drag the slider to any amount and click **Seal my bid**. Watch the progress step
@@ -62,7 +68,7 @@ statement. You just watched that happen, twice.
 
 ## Part 2 — the live public board
 
-Go back to the board at http://localhost:3000. It is pre-seeded with three real
+Go back to the board at `/`. It is pre-seeded with three real
 auctions (a Vickrey collectible, a first-price `.zec` handle, and an open relay
 slot), each carrying **real, verifiable** sealed bids — some already revealed.
 
@@ -77,8 +83,28 @@ the bound, and the three output hashes; the bid amount is not among them.
 On the open auction ("Priority relay slot"), drag the slider and **Seal this
 bid** (real proof again), then **Publish sealed bid**. It joins the board as a
 commitment with no amount. "Deliver it over Zcash" shows a real ZIP-321 request
-carrying a ZIP-302 memo (watch the 512-byte counter), an "Open in Zcash wallet"
-link, and a QR code — the private path to the seller.
+carrying a ZIP-302 memo (watch the 512-byte counter), a QR code (tap it to
+enlarge), an "Open in Zcash wallet" link, and a **Proof bundle** download.
+
+You can check the delivery at three depths:
+
+1. **No wallet.** Download the proof bundle and read its `memo` field. That is
+   the exact text the shielded payment carries: `ZECBID1|` followed by the
+   auction id, commitment, binding, nullifier and proof commitment. No amount.
+2. **Scan only.** Scan the QR with any mainnet Zcash wallet and stop at the
+   confirmation screen. The wallet shows the seller address, 0.0001 ZEC and the
+   memo, pre-filled from the QR.
+3. **Send it to yourself.** Open your own auction (**Open an auction**) with your
+   wallet's shielded address as the seller, seal a bid there, scan and send from
+   your shielded balance. Only the network fee is spent. Open the received
+   transaction: the memo matches the commitment on the board.
+
+The "Open in Zcash wallet" link only works on a device where a wallet app is
+registered for `zcash:` links, which is usually a phone. On a laptop, scan the QR.
+
+The seeded auctions carry a placeholder seller address that no wallet controls,
+so a payment sent to one of them is not a payment you can get back. Deliver to an
+auction you opened yourself with your own address (below), and keep the funds.
 
 ### Reveal and settle
 Reveal your bid, then open the **Settlement** panel and click **Verify reveals**.
@@ -91,19 +117,23 @@ the correct place for it, not a gap.
 
 ## What is honest about this demo
 
-- **Testnet.** The seed and the flow are testnet; nothing touches real funds.
+- **Mainnet, deliberately.** The live demo is on mainnet so judges can use the
+  wallet they already have. Proving, verifying, revealing and settling cost
+  nothing; only sending a delivery moves real ZEC (0.0001 plus the fee). Local
+  runs stay on testnet.
 - **Publishing to the board is a clearnet HTTP POST,** so the board host sees the
   bidder's IP. The ZK hides the amount and Zcash hides the bidder-to-seller
   delivery, but network anonymity against the board itself needs Tor or a VPN.
   This is the one explicitly non-private step, not hidden.
 - **No deposit or escrow, and reveal is voluntary.** The range proof is about a
   number, not about funds.
-- **The board cannot confirm a settlement payment landed.** Zcash has no contract
-  to read; confirming an incoming shielded payment needs the seller's viewing key
-  and a light client.
+- **The board cannot confirm a payment landed.** Zcash has no contract to read;
+  confirming an incoming shielded payment needs the seller's viewing key and a
+  light client. The seller's own wallet is where a delivery is confirmed.
 - **Not audited.** This is hackathon software.
 
-The seed is committed at `lib/board/seed-data.json` (regenerate with
-`npm run seed:board`); it is loaded when no live board exists yet. Full security
-detail is in [`docs/SECURITY.md`](docs/SECURITY.md); the case against the judging
-axes is in [`docs/WHY-THIS-WINS.md`](docs/WHY-THIS-WINS.md).
+The seeds are committed at `lib/board/seed-data.<network>.json` (regenerate with
+`npm run seed:board`, see the README's Networks section); the seed for the
+running network loads when no live board exists yet. Full security detail is in
+[`docs/SECURITY.md`](docs/SECURITY.md); the case against the judging axes is in
+[`docs/WHY-THIS-WINS.md`](docs/WHY-THIS-WINS.md).

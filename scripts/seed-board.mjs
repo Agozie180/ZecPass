@@ -1,4 +1,4 @@
-// Generate a committed demo board (lib/board/seed-data.json) with REAL,
+// Generate a committed demo board (lib/board/seed-data.<network>.json) with REAL,
 // in-browser-verifiable sealed-bid and reveal proofs, so the public board is
 // alive on first load with nothing to set up.
 //
@@ -7,17 +7,28 @@
 // normalisation, proof commitment) mirrors lib/proof/auction-proofs.ts exactly,
 // so these records verify in the browser against the same artifacts.
 //
-// Run: npm run seed:board   (regenerates lib/board/seed-data.json; TESTNET)
+// The network is mixed into every proof's currency tag, so each network has its
+// own seed file, lib/board/seed-data.<network>.json, and a seed only verifies on
+// the network it was generated for.
+//
+// Run: npm run seed:board                          (testnet)
+//      npm run seed:board -- mainnet <u1… or zs1…>  (mainnet)
+//
+// Mainnet requires a real shielded address you control: sealed bids sent from
+// the seeded auctions arrive there, so a made-up address would lose the funds.
+// Testnet falls back to synthetic addresses when none is given.
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Noir } from "@noir-lang/noir_js";
 import { UltraHonkBackend } from "@aztec/bb.js";
-import { bech32m } from "@scure/base";
+import { bech32, bech32m } from "@scure/base";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const NETWORK = "testnet"; // must match the app's runtime network for the currency tag
+const NETWORK = process.argv[2] ?? "testnet"; // must match the app's runtime network for the currency tag
+if (NETWORK !== "testnet" && NETWORK !== "mainnet") throw new Error(`Unknown network "${NETWORK}" (use testnet or mainnet).`);
+const SELLER = process.argv[3]?.trim();
 const BN254 = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
 
 const sealedCircuit = JSON.parse(readFileSync(join(root, "artifacts/noir/sealed_bid.json"), "utf8"));
@@ -35,7 +46,26 @@ function fieldHexFromString(input) {
 }
 const currencyField = (auctionId) => `0x${fieldHexFromString(`auction|${NETWORK}|${auctionId}`)}`;
 const randomSecret = () => `0x${randomBytes(31).toString("hex")}`;
-const sellerAddress = (seed) => bech32m.encode("utest", Array.from({ length: 100 }, (_, i) => (i * seed + 5) % 32), false);
+
+// Same prefixes and checksums as lib/zcash/address.ts: unified (Bech32m) or Sapling (Bech32).
+const PREFIXES = { testnet: { unified: "utest", sapling: "ztestsapling" }, mainnet: { unified: "u", sapling: "zs" } };
+function checkSeller(address) {
+  const { unified, sapling } = PREFIXES[NETWORK];
+  const decodes = (codec, hrp) => {
+    try { return codec.decode(address, false).prefix === hrp; } catch { return false; }
+  };
+  if (!decodes(bech32m, unified) && !decodes(bech32, sapling)) {
+    throw new Error(`"${address}" is not a valid shielded ${NETWORK} address (${unified}1… or ${sapling}1…).`);
+  }
+  return address;
+}
+if (NETWORK === "mainnet" && !SELLER) {
+  throw new Error("A mainnet seed needs a real shielded address you control: npm run seed:board -- mainnet <u1…>");
+}
+if (!SELLER) console.warn("[seed] no seller address given: using synthetic testnet addresses no wallet can pay.");
+else checkSeller(SELLER); // fail before minutes of proving, not after
+const sellerAddress = (seed) =>
+  SELLER ?? bech32m.encode("utest", Array.from({ length: 100 }, (_, i) => (i * seed + 5) % 32), false);
 
 const sealedBackend = new UltraHonkBackend(sealedCircuit.bytecode, { threads: 1 });
 const openBackend = new UltraHonkBackend(openCircuit.bytecode, { threads: 1 });
@@ -81,10 +111,12 @@ async function revealBid({ auctionId, sealed, revealedAt }) {
 }
 
 const HOUR = 3600_000;
+const DAY = 24 * HOUR;
 const now = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
 
 // Three exhibits: a settled Vickrey, a settled first-price, and one still open.
+// The open one stays open for months so it is still biddable through judging.
 const PLAN = [
   {
     id: "rare-shielded-note", title: "Rare shielded note (NU5 genesis)",
@@ -104,7 +136,7 @@ const PLAN = [
     id: "priority-relay-slot", title: "Priority relay slot (next epoch)",
     description: "A block of priority relay capacity. Bidding is open — seal yours.",
     reservePrice: 10, bound: 500, pricingRule: "vickrey", seedN: 19,
-    opens: now - 6 * HOUR, closes: now + 72 * HOUR,
+    opens: now - 6 * HOUR, closes: now + 120 * DAY,
     bids: [{ amount: 22, reveal: false }, { amount: 35, reveal: false }, { amount: 50, reveal: false }],
   },
 ];
@@ -132,7 +164,7 @@ for (const p of PLAN) {
 await sealedBackend.destroy();
 await openBackend.destroy();
 
-const out = join(root, "lib/board/seed-data.json");
+const out = join(root, `lib/board/seed-data.${NETWORK}.json`);
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, `${JSON.stringify({ auctions }, null, 2)}\n`, "utf8");
 console.log(`[seed] wrote ${auctions.length} auctions, ${auctions.reduce((n, a) => n + a.sealedBids.length, 0)} sealed bids, ${auctions.reduce((n, a) => n + a.reveals.length, 0)} reveals -> ${out}`);

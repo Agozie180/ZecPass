@@ -102,7 +102,7 @@ export function CreateAuctionForm() {
       </div>
 
       <label>
-        <span>Seller shielded address ({ZCASH_NETWORK.name.toLowerCase()})</span>
+        <span>Seller shielded address ({ZCASH_NETWORK.name.toLowerCase()}): sealed bids arrive here, so use one you control</span>
         <input
           value={sellerAddress}
           onChange={(e) => setSellerAddress(e.target.value)}

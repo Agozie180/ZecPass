@@ -58,6 +58,30 @@ the loop entirely. Today it is upstream-trusted — stated plainly, not hidden.
 - The Barretenberg CRS is fetched from `crs.aztec.network` when proving. That
   request reveals that the browser is about to prove something, not what.
 
+## Networks
+
+The live demo runs on Zcash **mainnet**; local development defaults to
+**testnet**. The network is fixed at build time (`NEXT_PUBLIC_ZCASH_NETWORK`).
+
+- **Proofs are bound to a network.** The network is mixed into each auction's
+  currency tag, which is a public input of both circuits, so a proof made on
+  testnet does not verify on mainnet. A test checks that each committed seed
+  carries its own network's tag.
+- **Each network has its own board.** Separate seed files and a separate KV key
+  per network mean a local testnet run cannot write to the live mainnet board.
+- **Seller addresses are checked twice.** The create form and the
+  `POST /api/auctions` route both reject transparent addresses, bad checksums,
+  and addresses for the other network. The check proves the address is
+  well-formed, not that anyone controls it, and it does not decode the receivers
+  inside a unified address; the sending wallet is the final check.
+- **Mainnet means real money.** Sending a delivery is a real shielded payment of
+  0.0001 ZEC plus the network fee. The seeded auctions carry a placeholder seller
+  address that no wallet controls, so do not deliver to them: open your own
+  auction with an address you hold. Verified 2026-10-16.
+- **Privacy of the delivery depends on the sending wallet.** ZecPass refuses
+  transparent *recipients*. A bidder who pays from a transparent balance still
+  reveals their own address on chain; send from a shielded balance.
+
 ## What it does NOT establish — read this
 
 - **Posting to the public board is a normal clearnet request.** The ZK keeps the
@@ -85,9 +109,16 @@ the loop entirely. Today it is upstream-trusted — stated plainly, not hidden.
 - **Anti-sybil is per-secret, not per-person.** The nullifier stops one
   `bidder_secret` from placing two admissible bids on one auction. A bidder who
   generates a fresh secret can bid again; the board does not know people.
-- **Not tested against a live Zcash wallet.** The ZIP-321 request and memo
-  follow the specs, but the end-to-end shielded flow has not been run with a
-  real wallet.
+- **The delivery is tested up to the wallet, not through it.** Automated
+  browser tests on the mainnet build confirm the ZIP-321 request is a mainnet
+  request, its memo decodes to the sealed-bid envelope, and the QR on screen
+  decodes back to that exact request. The memo can also be read without a
+  wallet in the downloadable proof bundle. A wallet actually sending the
+  payment, and the memo arriving at the seller, sit outside automated testing
+  and are checked with a real wallet (see `DEMO.md`).
+- **No settlement request in the UI yet.** The settlement ZIP-321 request is
+  built and unit-tested (`buildSettlementUri`), but the settlement panel shows the
+  outcome only; paying the seller is the winner's own step.
 
 ## Reporting
 

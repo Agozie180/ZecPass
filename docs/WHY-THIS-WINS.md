@@ -17,12 +17,16 @@ What is hidden, and by what:
 - The **bid amount** is a private circuit input. The `sealed_bid` public inputs
   are the currency tag, the reserve, the bound, and the three output hashes
   (commitment, binding, nullifier). The amount is not among them. You can confirm
-  this in `lib/board/seed-data.json` or the board's network response: the public
-  inputs carry the reserve (10) and the bound (1000) in the clear plus three
-  hashes, and no bid.
+  this in `lib/board/seed-data.mainnet.json` or the board's network response: on
+  the open "Priority relay slot" auction the public inputs carry the reserve (10)
+  and the bound (500) in the clear plus three hashes, and no bid.
 - The **bidder-to-seller delivery** is a shielded Zcash ZIP-321 request with a
   ZIP-302 memo. Transparent addresses are rejected, so a bid cannot be delivered
-  in the clear.
+  in the clear. The live demo is on mainnet, so a judge can scan the QR with the
+  wallet they already use, send the bid to an auction they opened with their own
+  address, and read the memo arrive. On a block explorer that transaction shows
+  no sender, receiver, amount or memo: the track's "participants should not" be
+  public, made checkable.
 - The **bidder's secret and per-auction blinding** never leave the browser. They
   live in `localStorage` and feed the binding and the nullifier; losing them
   means a sealed bid can no longer be revealed, which is the honest cost of
@@ -59,13 +63,18 @@ for it to read). These are the honest edges of a one-window build, and
 
 It runs, and the parts that matter are tested:
 
+- It is live on **Zcash mainnet**, not a testnet a judge would need a faucet for.
 - The full round trip, create to seal to publish to verify to reveal to settle,
-  passes in a real browser.
+  passes in a real browser on both the testnet and the mainnet build.
+- The delivery QR is checked the way a wallet reads it: a browser test screenshots
+  the QR on the page and decodes it back to the exact ZIP-321 request, in light
+  and dark theme, at normal and enlarged size.
 - A real UltraHonk proof generates and verifies in-browser in about 10 to 25
   seconds. It is not mocked, and the same proof re-verifies from the board.
 - Circuit tests pass: `sealed_bid` 7 of 7 and `open_bid` 5 of 5 under `nargo`.
 - The board ships pre-seeded with real auctions carrying real proofs and reveals,
-  so the app is alive on first load. Setup is `npm install && npm run dev`.
+  so the app is alive on first load. A test checks every seeded proof carries
+  the right network tag, so a wrong-network seed cannot ship.
 
 One execution detail worth noting because it is easy to get wrong: `@aztec/bb.js`
 ships a prebuilt browser bundle that Next's bundler cannot re-process, so it is

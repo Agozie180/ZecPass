@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAuctionRecord, listAuctions } from "@/lib/board/store";
+import { parseZcashAddress } from "@/lib/zcash/address";
+import { ZCASH_NETWORK } from "@/lib/zcash/config";
 
 // The board is live state, never statically cached.
 export const dynamic = "force-dynamic";
@@ -22,6 +24,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Expected a JSON body." }, { status: 400 });
   }
   const b = body as Record<string, unknown>;
+  // Bids are delivered to this address with real payments, so it must be a
+  // well-formed shielded address on the network this deployment runs.
+  const sellerAddress = String(b.sellerAddress ?? "").trim();
+  const addressCheck = parseZcashAddress(sellerAddress, ZCASH_NETWORK.id);
+  if (!addressCheck.ok) return NextResponse.json({ error: addressCheck.reason }, { status: 400 });
   try {
     const auction = await createAuctionRecord({
       title: String(b.title ?? ""),
@@ -31,7 +38,7 @@ export async function POST(request: Request) {
       pricingRule: b.pricingRule === "vickrey" ? "vickrey" : "first-price",
       bidOpensAt: String(b.bidOpensAt ?? ""),
       bidClosesAt: String(b.bidClosesAt ?? ""),
-      sellerAddress: String(b.sellerAddress ?? ""),
+      sellerAddress,
     });
     return NextResponse.json({ auction }, { status: 201 });
   } catch (error) {

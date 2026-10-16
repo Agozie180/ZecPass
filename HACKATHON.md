@@ -62,5 +62,8 @@ delivery; a public board makes the sealed commitments auditable by anyone.
    settlement landed. Decide how much of this to build vs. disclose.
 4. **Execution.** Browser proving is verified end-to-end (real proof generated and
    verified in a headless browser), and the full create→seal→board→reveal→settle
-   round trip has been exercised in a real browser. Still needed: a real testnet
-   wallet test (a ZIP‑321 payment to a funded wallet) and a demo video.
+   round trip has been exercised in a real browser on testnet and mainnet builds.
+   The live demo runs on mainnet so judges can use their own wallet; the delivery
+   QR decodes back to the exact ZIP-321 request in a browser test. Still needed:
+   one real mainnet send from a wallet with the memo read on the seller's side,
+   and a demo video.

@@ -11,6 +11,7 @@ import { isBiddingOpen, resolveAuction, type PricingRule } from "@/lib/domain/au
 import { buildBidDeliveryUri, buildSealedBidMemo } from "@/lib/zcash/sealed-bid";
 import { DEFAULT_REQUEST_ZAT, ZCASH_NETWORK, shortId } from "@/lib/zcash/config";
 import { memoByteLength } from "@/lib/zcash/memo";
+import { formatZec } from "@/lib/zcash/zip321";
 import { proveSealedBid, proveOpenBid, verifySealedBidProof, verifyOpenBidProof } from "@/lib/proof/auction-proofs";
 import { createBidIdentity, recallBid, rememberBid } from "@/lib/proof/bidder-secret";
 import type { BoardAuction } from "@/lib/board/store";
@@ -88,6 +89,7 @@ function BidPanel({ auction, open, onPosted }: { auction: BoardAuction; open: bo
   const [result, setResult] = useState<{ commitment: string; bidderBinding: string; nullifier: string; proofCommitment: string; proofHex: string; publicInputs: string[] } | null>(null);  const [memo, setMemo] = useState("");
   const [deliveryUri, setDeliveryUri] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
+  const [qrLarge, setQrLarge] = useState(false);
   const [posted, setPosted] = useState(false);
 
   const maxBound = Math.max(auction.reservePrice * 100, bid + auction.reservePrice);
@@ -140,7 +142,12 @@ function BidPanel({ auction, open, onPosted }: { auction: BoardAuction; open: bo
 
   useEffect(() => {
     if (!deliveryUri) return;
-    QRCode.toDataURL(deliveryUri, { margin: 1, width: 200, errorCorrectionLevel: "L" }).then(setQr).catch(() => setQr(null));
+    // SVG stays sharp at any size, and the standard 4-module quiet zone keeps it
+    // scannable against the dark theme. The URI is long (~600 chars), so the code
+    // is dense: it is drawn large and can be enlarged further.
+    QRCode.toString(deliveryUri, { type: "svg", margin: 4, errorCorrectionLevel: "L" })
+      .then((svg) => setQr(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`))
+      .catch(() => setQr(null));
   }, [deliveryUri]);
 
   const publish = async () => {
@@ -266,24 +273,39 @@ function BidPanel({ auction, open, onPosted }: { auction: BoardAuction; open: bo
             <div>
               <h3>1. Publish the commitment</h3>
               <p>Adds the sealed bid to the public board. Only commitments are published.</p>
-              <button onClick={publish} disabled={posted}>
-                {posted ? <><Check size={15} /> Published</> : <>Publish sealed bid <Stamp size={15} /></>}
-              </button>
+              <div className="room-actions">
+                <button onClick={publish} disabled={posted}>
+                  {posted ? <><Check size={15} /> Published</> : <>Publish sealed bid <Stamp size={15} /></>}
+                </button>
+              </div>
             </div>
             <div>
               <h3>2. Deliver it over Zcash</h3>
               <p>Send the memo to the seller in a shielded transaction. Only they can read it.</p>
               {deliveryUri ? (
                 <>
-                  <code className="room-uri">{deliveryUri}</code>
+                  {qr && (
+                    <button
+                      type="button"
+                      className={qrLarge ? "room-qr-toggle large" : "room-qr-toggle"}
+                      onClick={() => setQrLarge((v) => !v)}
+                      aria-label={qrLarge ? "Shrink the QR code" : "Enlarge the QR code"}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- generated data-URL QR */}
+                      <img className="room-qr" src={qr} alt="ZIP-321 sealed bid delivery QR code" />
+                    </button>
+                  )}
+                  <p className="room-hint">
+                    Scan with your Zcash wallet; tap the code to {qrLarge ? "shrink" : "enlarge"} it.
+                    {ZCASH_NETWORK.id === "mainnet"
+                      ? ` This is a real mainnet payment: ${formatZec(DEFAULT_REQUEST_ZAT)} ZEC to the seller plus the network fee.`
+                      : " Testnet: no real funds move."}
+                  </p>
                   <div className="room-actions">
                     <a className="cred-action-link" href={deliveryUri}><Wallet size={14} /> Open in Zcash wallet</a>
                     <button className="ghost" onClick={downloadBundle}><Download size={14} /> Proof bundle</button>
                   </div>
-                  {qr && (
-                    // eslint-disable-next-line @next/next/no-img-element -- generated data-URL QR
-                    <img className="room-qr" src={qr} alt="ZIP-321 sealed bid delivery QR code" width={140} height={140} />
-                  )}
+                  <code className="room-uri">{deliveryUri}</code>
                 </>
               ) : (
                 <p className="warn">Could not build the delivery request.</p>

@@ -80,7 +80,11 @@
 .room-split h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
 .room-split p { font-size: 14px; color: var(--slate); margin-bottom: 12px; }
 .room-uri { display: block; padding: 10px; background: var(--paper); border: 1px solid var(--rule); font-size: 12px; overflow-wrap: anywhere; }
-.room-qr { margin-top: 12px; }
+.room-qr-toggle { display: block; margin: 4px 0 10px; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.room-qr { display: block; width: 240px; max-width: 100%; height: auto; }
+.room-qr-toggle.large { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; margin: 0; background: rgb(0 0 0 / 0.72); cursor: zoom-out; }
+.room-qr-toggle.large .room-qr { width: min(520px, 92vw, 92vh); }
+.room-hint { font-size: 13px; }
 .cred-action-link { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; }
 .sealed-list,
 .reveal-list { list-style: none; display: grid; gap: 0; }

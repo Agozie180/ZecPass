@@ -2,7 +2,18 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { acceptSealedBid, createAuction, type Auction, type SealedBidRecord } from "@/lib/domain/auction";
-import seedData from "./seed-data.json";
+import { ZCASH_NETWORK, type ZcashNetworkId } from "@/lib/zcash/config";
+import testnetSeed from "./seed-data.testnet.json";
+
+/**
+ * The mainnet seed is imported when it is present, so a clone still builds and a
+ * testnet run still works before anyone has generated one. A mainnet deploy
+ * needs it: `npm run seed:board -- mainnet <your u1…>` writes it, and
+ * `seed-data.test.ts` fails if a seed belongs to the other network.
+ */
+const mainnetSeed: unknown = await import("./seed-data.mainnet.json")
+  .then((m) => m.default)
+  .catch(() => null);
 
 /**
  * The public auction board.
@@ -19,18 +30,29 @@ import seedData from "./seed-data.json";
  * copy — so a one-click deploy never crashes. Reads fall back to the committed
  * demo seed. The board is a demo surface, not a system of record; swap these two
  * functions for a database and nothing else changes.
+ *
+ * Each network keeps its own board and seed. The network is mixed into every
+ * proof's currency tag, so a testnet bid can never verify on mainnet; separate
+ * storage keeps a local testnet run from writing to the live mainnet board.
  */
 
-const PRIMARY_PATH = path.join(process.cwd(), "data", "board.json");
-const FALLBACK_PATH = path.join(os.tmpdir(), "zecpass-board.json");
+const PRIMARY_PATH = path.join(process.cwd(), "data", `board.${ZCASH_NETWORK.id}.json`);
+const FALLBACK_PATH = path.join(os.tmpdir(), `zecpass-board.${ZCASH_NETWORK.id}.json`);
 
 // On a serverless host a disk is not shared between instances, so for a real
 // shared board set a KV store: Vercel KV or Upstash Redis (either env pair).
 // Without it, the board still works per-instance via the paths above.
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const KV_KEY = "zecpass:board:v1";
+const KV_KEY = `zecpass:board:${ZCASH_NETWORK.id}:v1`;
 const kvEnabled = Boolean(KV_URL && KV_TOKEN);
+
+const SEEDS: Record<ZcashNetworkId, unknown> = {
+  // A mainnet deploy without its seed would serve testnet proofs, which cannot
+  // verify there; the empty board makes that visible instead of misleading.
+  mainnet: mainnetSeed ?? { auctions: [] },
+  testnet: testnetSeed,
+};
 
 async function kvGet(): Promise<Board | null> {
   try {
@@ -120,7 +142,7 @@ async function readBoard(): Promise<Board> {
   // Nothing stored yet: start from the committed demo seed (real, verifiable
   // proofs) so the board is populated on first load. The first successful write
   // persists over it, after which the seed is no longer consulted.
-  return (await readStored()) ?? structuredClone(seedData as unknown as Board);
+  return (await readStored()) ?? structuredClone(SEEDS[ZCASH_NETWORK.id] as Board);
 }
 
 // Writes are serialised through one promise chain so two concurrent requests
