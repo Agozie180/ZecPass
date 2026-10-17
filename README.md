@@ -130,7 +130,7 @@ Both are Noir `1.0.0-beta.9`, proved and verified with UltraHonk. `sealed_bid` p
 
 ## Known limits (stated plainly)
 
-Full detail in [`docs/SECURITY.md`](docs/SECURITY.md). In short: publishing a sealed bid to the board is a clearnet HTTP POST, so the board host sees the bidder's IP — the ZK hides the amount and Zcash hides the bidder→seller delivery, but board-level network anonymity needs Tor; there is no deposit/escrow and reveal is voluntary; the board cannot confirm a settlement payment landed; the live demo is mainnet, so sending a delivery is a real payment (0.0001 ZEC plus the network fee), and the seeded auctions carry a placeholder seller address that no wallet controls — only deliver to an auction you opened with your own address; nothing is audited.
+Full detail in [`docs/SECURITY.md`](docs/SECURITY.md). In short: publishing a sealed bid to the board is a clearnet HTTP POST, so the board host sees the bidder's IP — the ZK hides the amount and Zcash hides the bidder→seller delivery, but board-level network anonymity needs Tor; there is no deposit/escrow and reveal is voluntary; the board cannot confirm a settlement payment landed; the live demo is mainnet, so sending a delivery is a real payment (0.0001 ZEC plus the network fee), and on the seeded auctions the seller is the project author's own address — open your own auction to keep the funds; nothing is audited.
 
 ## For judges
 

@@ -75,9 +75,9 @@ The live demo runs on Zcash **mainnet**; local development defaults to
   well-formed, not that anyone controls it, and it does not decode the receivers
   inside a unified address; the sending wallet is the final check.
 - **Mainnet means real money.** Sending a delivery is a real shielded payment of
-  0.0001 ZEC plus the network fee. The seeded auctions carry a placeholder seller
-  address that no wallet controls, so do not deliver to them: open your own
-  auction with an address you hold. Verified 2026-10-16.
+  0.0001 ZEC plus the network fee. On the seeded auctions the seller is the
+  project author's own shielded address, so a delivery sent there goes to the
+  author; open your own auction with an address you hold to keep the funds.
 - **Privacy of the delivery depends on the sending wallet.** ZecPass refuses
   transparent *recipients*. A bidder who pays from a transparent balance still
   reveals their own address on chain; send from a shielded balance.

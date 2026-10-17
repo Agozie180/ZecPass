@@ -3,6 +3,7 @@ import { currencyField } from "@/lib/proof/auction-proofs";
 import { normalizeField } from "@/lib/proof/primitives";
 import { parseZcashAddress } from "@/lib/zcash/address";
 import { NETWORKS, type ZcashNetworkId } from "@/lib/zcash/config";
+import mainnetSeed from "./seed-data.mainnet.json";
 import testnetSeed from "./seed-data.testnet.json";
 
 /**
@@ -10,9 +11,6 @@ import testnetSeed from "./seed-data.testnet.json";
  * every proof's currency tag, so a seed generated for the wrong network would
  * deploy cleanly and then show "proof invalid" on every bid. These checks catch
  * that before it ships, without running the prover.
- *
- * The mainnet seed carries the operator's own seller address and is generated at
- * deploy time, so these checks run only when it is present.
  */
 
 type SeedAuction = {
@@ -22,23 +20,10 @@ type SeedAuction = {
   reveals: { publicInputs: string[] }[];
 };
 
-const mainnetSeed: { auctions: SeedAuction[] } | null = await import("./seed-data.mainnet.json")
-  .then((m) => m.default as { auctions: SeedAuction[] })
-  .catch(() => null);
+const SEEDS: Record<ZcashNetworkId, { auctions: SeedAuction[] }> = { mainnet: mainnetSeed, testnet: testnetSeed };
 
-const SEEDS: Partial<Record<ZcashNetworkId, { auctions: SeedAuction[] }>> = {
-  mainnet: mainnetSeed ?? undefined,
-  testnet: testnetSeed,
-};
-
-const present = (Object.keys(NETWORKS) as ZcashNetworkId[]).filter((n) => SEEDS[n]);
-
-it("has a seed committed for testnet", () => {
-  expect(SEEDS.testnet?.auctions.length).toBeGreaterThan(0);
-});
-
-describe.each(present)("%s seed", (network) => {
-  const { auctions } = SEEDS[network]!;
+describe.each(Object.keys(NETWORKS) as ZcashNetworkId[])("%s seed", (network) => {
+  const { auctions } = SEEDS[network];
 
   it("has auctions with sealed bids", () => {
     expect(auctions.length).toBeGreaterThan(0);

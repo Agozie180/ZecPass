@@ -3,17 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { acceptSealedBid, createAuction, type Auction, type SealedBidRecord } from "@/lib/domain/auction";
 import { ZCASH_NETWORK, type ZcashNetworkId } from "@/lib/zcash/config";
+import mainnetSeed from "./seed-data.mainnet.json";
 import testnetSeed from "./seed-data.testnet.json";
-
-/**
- * The mainnet seed is imported when it is present, so a clone still builds and a
- * testnet run still works before anyone has generated one. A mainnet deploy
- * needs it: `npm run seed:board -- mainnet <your u1…>` writes it, and
- * `seed-data.test.ts` fails if a seed belongs to the other network.
- */
-const mainnetSeed: unknown = await import("./seed-data.mainnet.json")
-  .then((m) => m.default)
-  .catch(() => null);
 
 /**
  * The public auction board.
@@ -47,12 +38,9 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const KV_KEY = `zecpass:board:${ZCASH_NETWORK.id}:v1`;
 const kvEnabled = Boolean(KV_URL && KV_TOKEN);
 
-const SEEDS: Record<ZcashNetworkId, unknown> = {
-  // A mainnet deploy without its seed would serve testnet proofs, which cannot
-  // verify there; the empty board makes that visible instead of misleading.
-  mainnet: mainnetSeed ?? { auctions: [] },
-  testnet: testnetSeed,
-};
+// Both seeds are committed. A missing one fails the build rather than serving
+// the other network's proofs, which cannot verify here.
+const SEEDS: Record<ZcashNetworkId, unknown> = { mainnet: mainnetSeed, testnet: testnetSeed };
 
 async function kvGet(): Promise<Board | null> {
   try {

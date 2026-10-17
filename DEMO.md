@@ -102,9 +102,9 @@ You can check the delivery at three depths:
 The "Open in Zcash wallet" link only works on a device where a wallet app is
 registered for `zcash:` links, which is usually a phone. On a laptop, scan the QR.
 
-The seeded auctions carry a placeholder seller address that no wallet controls,
-so a payment sent to one of them is not a payment you can get back. Deliver to an
-auction you opened yourself with your own address (below), and keep the funds.
+On the seeded auctions the seller is the project author's own shielded address,
+so a payment sent there goes to the author. Deliver to an auction you opened
+yourself with your own address (below) if you want to keep the funds.
 
 ### Reveal and settle
 Reveal your bid, then open the **Settlement** panel and click **Verify reveals**.
