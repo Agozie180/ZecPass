@@ -19,7 +19,8 @@ and proof. The application still has no automatic payment confirmation.
 | Transaction ID supplied by the maintainer | `2b15d7c280c9f44e1a4f5266c290c7cd547a34427219e0dc9e78c1a277ff498a` |
 | Auction ID | `sealed-note-10-zec-reserve-1y0lvlb` |
 | Auction title | Sealed note, 10 ZEC reserve |
-| Configured reserve / proof lower bound | **11**, in the auction's ZEC display units |
+| Starting reserve | **10 ZEC**, the form default and the minimum described by the maintainer |
+| Chosen value / configured reserve / proof lower bound | **11**, in the auction's ZEC display units |
 | Proof upper bound | 1,100, in the same display units |
 | Pricing rule | Vickrey (second price) |
 | Board submission time | `2026-10-23T14:48:33.941Z` |
@@ -27,10 +28,12 @@ and proof. The application still has no automatic payment confirmation.
 | Memo size | **302 UTF-8 bytes**, within ZIP-302's 512-byte limit |
 | Sealed-bid proof size | 14,592 bytes |
 
-The title and ID contain “10 ZEC reserve,” but the board's `reservePrice` and
-the proof's public lower bound both equal **11**. Auction titles are descriptive
-text; the proof binds the numeric public inputs. Neither the title nor the memo
-discloses the sealed bid amount.
+The maintainer clarified that the starting minimum was **10 ZEC** and they
+chose **11**. The creation form defaults to a reserve of 10; this auction's
+saved `reservePrice` and the proof's public lower bound record the chosen value
+of 11. The title and ID retain the starting “10 ZEC reserve” text. The form's
+default is configurable, rather than a fixed protocol minimum. Neither the
+title nor the memo discloses the sealed bid amount.
 
 [Open the auction](https://zec-pass.vercel.app/auctions/sealed-note-10-zec-reserve-1y0lvlb)
 or inspect its [public API response](https://zec-pass.vercel.app/api/auctions/sealed-note-10-zec-reserve-1y0lvlb).

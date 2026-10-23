@@ -50,9 +50,11 @@ artifact and `@aztec/bb.js` `0.87.0` using `{ keccak: true }`.
 
 Its public inputs bind the mainnet auction tag, a lower bound of **11**, an
 upper bound of **1,100**, and the commitment, binding and nullifier in the
-302-byte delivery memo. The auction title contains “10 ZEC reserve,” but the
-numeric public input and configured reserve are 11. The memo's proof commitment
-also matches a recomputation from the proof bytes and public inputs.
+302-byte delivery memo. The creation form starts with a **10 ZEC** reserve,
+and the maintainer clarified that they chose **11** for this run. The title
+retains the starting 10 ZEC value; the configured reserve and proof lower bound
+record 11. The memo's proof commitment also matches a recomputation from the
+proof bytes and public inputs.
 
 The [saved evidence](../docs/evidence/mainnet-bid-2026-10-23.json) and
 [reproduction command](../docs/MAINNET-EVIDENCE.md#reproduce-the-proof-check)

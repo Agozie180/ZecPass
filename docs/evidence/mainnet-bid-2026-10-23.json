@@ -2,6 +2,12 @@
   "description": "One maintainer-reported mainnet bid delivery, with an independently checked public board proof. Wallet confirmation is reported; this record does not independently establish transaction inclusion or decrypt the shielded transaction.",
   "reportedOn": "2026-10-23",
   "network": "mainnet",
+  "maintainerClarification": {
+    "startingReserve": 10,
+    "chosenValue": 11,
+    "currency": "ZEC",
+    "context": "The maintainer described a starting minimum of 10 and choosing 11. The creation form defaults to a reserve of 10; the saved auction and proof record 11 as the configured reserve and lower bound. The title retains the starting 10 ZEC value."
+  },
   "transactionId": "2b15d7c280c9f44e1a4f5266c290c7cd547a34427219e0dc9e78c1a277ff498a",
   "memo": "ZECBID1|sealed-note-10-zec-reserve-1y0lvlb|035070848f4c7126c41d60dedbdd596c1995cf5e6ecde40bae62005820b9bc03|15ee032195c37583e39ba72e72f824aa4b4ff33d69010396d50100122486832a|2a556f21f57baa1ccb676cd4bec061b9f16ec5c955d760f5bb042eec9a3dc5d3|3d0ae71a6ada63bf748a16a99cc4750be1c52556f4848d60fb558578b0cec2bb",
   "walletConfirmationAddress": "u19q4eh3j90mq0xnncq99sru3yffpyzeaml7nn0nhrg0gvgeng604ev7udk054h9d2kwgk7ldjrvhz33gmpq8g9laujhplsen35xdezquq8qrn2a4996vu9fd5twluyta43s8sy3pmefcv74u7mq0jfum2cetj5wr3qvak8un54ualttsx",

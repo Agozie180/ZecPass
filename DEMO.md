@@ -20,8 +20,10 @@ The supplied memo matches the bid on
 and the public proof independently re-verifies. Open the
 [mainnet evidence record](docs/MAINNET-EVIDENCE.md) for the exact memo, addresses
 with their documented roles, saved proof and verification command. A judge can
-inspect this existing example without sending a payment. Its configured reserve
-is **11**, despite “10 ZEC reserve” in the title.
+inspect this existing example without sending a payment. The starting reserve
+was **10 ZEC**, and the maintainer chose **11** for this run. The saved auction
+and proof record 11 as the configured reserve; the title retains the starting
+10 ZEC value.
 
 The wallet confirmation is reported by the maintainer; the public proof checks
 bid admissibility. This example records bid delivery, with settlement payment

@@ -32,6 +32,10 @@ The supplied `ZECBID1` memo matches the published bid for
 Its proof commitment was recomputed and its UltraHonk proof independently
 re-verified successfully. The memo is **302 bytes**; the proof is **14,592 bytes**.
 
+The reserve starts at **10 ZEC** in the creation form. The maintainer chose
+**11** for this auction, which is the configured reserve and public proof lower
+bound in the saved record. The auction title retains the starting 10 ZEC value.
+
 The [mainnet evidence record](docs/MAINNET-EVIDENCE.md) includes the exact memo,
 address roles, saved public proof and reproduction steps. Wallet confirmation is
 the maintainer's report; public proof verification does not confirm a shielded
