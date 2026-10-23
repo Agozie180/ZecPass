@@ -64,6 +64,12 @@ delivery; a public board makes the sealed commitments auditable by anyone.
    verified in a headless browser), and the full create→seal→board→reveal→settle
    round trip has been exercised in a real browser on testnet and mainnet builds.
    The live demo runs on mainnet so judges can use their own wallet; the delivery
-   QR decodes back to the exact ZIP-321 request in a browser test. Still needed:
-   one real mainnet send from a wallet with the memo read on the seller's side,
-   and a demo video.
+   QR decodes back to the exact ZIP-321 request in a browser test.
+   **Manual mainnet bid delivery reported complete on 2026-10-23:** the
+   maintainer supplied a transaction ID and `ZECBID1` memo after confirming the
+   transaction in their wallet. The memo matches the public board, and its
+   sealed-bid proof was independently re-verified. The
+   [mainnet evidence record](docs/MAINNET-EVIDENCE.md) includes the exact data,
+   address roles, saved proof and reproduction steps. Wallet confirmation is
+   the maintainer's report; settlement payment and automated receipt detection
+   remain outside this milestone. Still needed: a demo video.

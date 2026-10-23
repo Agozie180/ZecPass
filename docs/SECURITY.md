@@ -82,6 +82,37 @@ The live demo runs on Zcash **mainnet**; local development defaults to
   transparent *recipients*. A bidder who pays from a transparent balance still
   reveals their own address on chain; send from a shielded balance.
 
+## Mainnet delivery validation
+
+On **2026-10-23**, the maintainer reported completing one mainnet auction bid
+and confirming the transaction in their wallet. The supplied transaction ID is
+`2b15d7c280c9f44e1a4f5266c290c7cd547a34427219e0dc9e78c1a277ff498a`.
+The [evidence record](MAINNET-EVIDENCE.md) preserves the exact 302-byte
+`ZECBID1` memo, address roles and the corresponding public board proof.
+
+The memo's auction ID and four hashes match the published bid. Its proof
+commitment was recomputed, its public inputs checked against the auction and
+mainnet tag, and its UltraHonk proof independently re-verified successfully.
+The first supplied address matches the auction's seller address. The second
+is recorded only as the maintainer's wallet confirmation address; its ownership
+and sender/receiver role are not inferred from its checksum or from the board.
+
+This adds a manual wallet confirmation to the existing automated checks of the
+ZIP-321 request, memo encoding and on-screen QR. The wallet confirmation is
+reported by the maintainer. Public proof verification cannot establish which
+transaction carried the memo; no independent chain lookup or wallet decryption
+was performed for the evidence record. The board has no automatic delivery or
+settlement confirmation.
+
+Publishing this memo, transaction ID and the supplied addresses voluntarily
+links this test transaction to the auction. That association is disclosed in
+the documentation; it is not information recovered by decrypting the public
+chain. A shielded transaction ID alone does not reveal its encrypted memo or
+establish the roles of the supplied addresses.
+
+The memo is a bid-delivery envelope. It establishes no settlement payment,
+funding guarantee or audit result. The limits below still apply.
+
 ## What it does NOT establish — read this
 
 - **Posting to the public board is a normal clearnet request.** The ZK keeps the
@@ -109,13 +140,11 @@ The live demo runs on Zcash **mainnet**; local development defaults to
 - **Anti-sybil is per-secret, not per-person.** The nullifier stops one
   `bidder_secret` from placing two admissible bids on one auction. A bidder who
   generates a fresh secret can bid again; the board does not know people.
-- **The delivery is tested up to the wallet, not through it.** Automated
-  browser tests on the mainnet build confirm the ZIP-321 request is a mainnet
-  request, its memo decodes to the sealed-bid envelope, and the QR on screen
-  decodes back to that exact request. The memo can also be read without a
-  wallet in the downloadable proof bundle. A wallet actually sending the
-  payment, and the memo arriving at the seller, sit outside automated testing
-  and are checked with a real wallet (see `DEMO.md`).
+- **Wallet confirmation remains a manual check.** One mainnet bid delivery has
+  been reported as confirmed in the maintainer's wallet (see
+  [Mainnet delivery validation](#mainnet-delivery-validation)). Automated browser
+  checks cover the request, memo and QR; they do not send funds or read a
+  wallet. A valid bid proof does not prove that a payment arrived.
 - **No settlement request in the UI yet.** The settlement ZIP-321 request is
   built and unit-tested (`buildSettlementUri`), but the settlement panel shows the
   outcome only; paying the seller is the winner's own step.

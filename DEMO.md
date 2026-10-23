@@ -6,6 +6,27 @@ a sealed-bid auction on the live board, and, if you have a Zcash wallet, deliver
 a sealed bid over Zcash mainnet and read it on the other side. Nothing is mocked:
 every proof is real Noir/UltraHonk, generated and verified in your browser.
 
+## Recorded mainnet bid
+
+The maintainer reported one completed mainnet auction bid and wallet
+confirmation on **2026-10-23**. Its transaction ID is:
+
+```text
+2b15d7c280c9f44e1a4f5266c290c7cd547a34427219e0dc9e78c1a277ff498a
+```
+
+The supplied memo matches the bid on
+[this auction](https://zec-pass.vercel.app/auctions/sealed-note-10-zec-reserve-1y0lvlb),
+and the public proof independently re-verifies. Open the
+[mainnet evidence record](docs/MAINNET-EVIDENCE.md) for the exact memo, addresses
+with their documented roles, saved proof and verification command. A judge can
+inspect this existing example without sending a payment. Its configured reserve
+is **11**, despite “10 ZEC reserve” in the title.
+
+The wallet confirmation is reported by the maintainer; the public proof checks
+bid admissibility. This example records bid delivery, with settlement payment
+confirmation still outside the application.
+
 ## Setup
 
 **Nothing to install:** the live demo at https://zec-pass.vercel.app runs on
@@ -99,6 +120,13 @@ You can check the delivery at three depths:
    your shielded balance. Only the network fee is spent. Open the received
    transaction: the memo matches the commitment on the board.
 
+For a manual delivery record, note the transaction ID and compare all five memo
+fields with the proof bundle: auction ID, commitment, binding, nullifier and
+proof commitment. Re-verify the bid on the board separately. Confirm the payment
+and read the memo in the receiving wallet; a public transaction lookup cannot
+show the shielded memo. Publishing a memo alongside its transaction ID links
+that transaction to the auction, as disclosed for the recorded example.
+
 The "Open in Zcash wallet" link only works on a device where a wallet app is
 registered for `zcash:` links, which is usually a phone. On a laptop, scan the QR.
 
@@ -118,8 +146,9 @@ the correct place for it, not a gap.
 ## What is honest about this demo
 
 - **Mainnet, deliberately.** The live demo is on mainnet so judges can use the
-  wallet they already have. Proving, verifying, revealing and settling cost
-  nothing; only sending a delivery moves real ZEC (0.0001 plus the fee). Local
+  wallet they already have. Proving, verifying, revealing and computing the
+  auction outcome are free. A delivery moves real ZEC (0.0001 plus the fee);
+  paying the clearing price is a separate wallet payment. Local
   runs stay on testnet.
 - **Publishing to the board is a clearnet HTTP POST,** so the board host sees the
   bidder's IP. The ZK hides the amount and Zcash hides the bidder-to-seller
@@ -129,7 +158,9 @@ the correct place for it, not a gap.
   number, not about funds.
 - **The board cannot confirm a payment landed.** Zcash has no contract to read;
   confirming an incoming shielded payment needs the seller's viewing key and a
-  light client. The seller's own wallet is where a delivery is confirmed.
+  light client. The seller's own wallet is where a delivery is confirmed. The
+  maintainer's recorded manual confirmation does not add automatic confirmation
+  to the board.
 - **Not audited.** This is hackathon software.
 
 The seeds are committed at `lib/board/seed-data.<network>.json` (regenerate with

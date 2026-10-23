@@ -41,6 +41,24 @@ public return values. For `sealed_bid` that is
 (6 fields). `lib/proof/auction-proofs.ts` relies on this order; keep the two in
 step if you change the circuit signatures.
 
+## Recorded mainnet proof
+
+The [mainnet evidence record](../docs/MAINNET-EVIDENCE.md) links one
+maintainer-reported, wallet-confirmed bid delivery to its public `sealed_bid`
+proof. The 14,592-byte proof was independently re-verified with the committed
+artifact and `@aztec/bb.js` `0.87.0` using `{ keccak: true }`.
+
+Its public inputs bind the mainnet auction tag, a lower bound of **11**, an
+upper bound of **1,100**, and the commitment, binding and nullifier in the
+302-byte delivery memo. The auction title contains “10 ZEC reserve,” but the
+numeric public input and configured reserve are 11. The memo's proof commitment
+also matches a recomputation from the proof bytes and public inputs.
+
+The [saved evidence](../docs/evidence/mainnet-bid-2026-10-23.json) and
+[reproduction command](../docs/MAINNET-EVIDENCE.md#reproduce-the-proof-check)
+allow verification without relying on the live board. Proof validity establishes
+bid admissibility; confirming shielded payment receipt remains a wallet check.
+
 ## Toolchain
 
 From the repo root:
