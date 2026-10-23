@@ -7,7 +7,7 @@
 ![network](https://img.shields.io/badge/live%20demo-Zcash%20mainnet-f4b728)
 ![license](https://img.shields.io/badge/license-MIT-black)
 
-**Links:** [Live demo (Zcash mainnet)](https://zec-pass.vercel.app) · [60‑second demo](DEMO.md) · [Why this wins](docs/WHY-THIS-WINS.md) · [Security notes](docs/SECURITY.md) · [Deploy your own](#deploy-a-live-demo-in-one-click) · Built for the **Zcash "Zecathon" — Private Markets track**
+**Links:** [Live demo (Zcash mainnet)](https://zec-pass.vercel.app) · [Demo guide](DEMO.md) · [Mainnet evidence](docs/MAINNET-EVIDENCE.md) · [Why this wins](docs/WHY-THIS-WINS.md) · [Security notes](docs/SECURITY.md) · [Deploy your own](#deploy-a-live-demo-in-one-click) · Built for the **Zcash "Zecathon" — Private Markets track**
 
 > **A sealed bid is a zero-knowledge proof: it clears the reserve, it is well-formed, and it cannot be claimed twice — and the amount never leaves the bidder's browser.**
 
@@ -17,6 +17,30 @@ Two privacy layers do two different jobs, and removing either breaks the design:
 
 - **UltraHonk hides the price.** `sealed_bid` proves `reserve ≤ bid ≤ bound` without revealing the bid and emits a per-auction nullifier so one bidder cannot stuff the ballot; `open_bid` proves a revealed amount opens the sealed commitment.
 - **Zcash hides the participants.** Bids reach the seller as a ZIP‑321 request carrying a ZIP‑302 memo; settlement is a shielded payment. Transparent addresses are rejected.
+
+## Mainnet bid confirmed in a wallet
+
+On **2026-10-23**, the maintainer reported completing one mainnet auction bid
+and confirming its transaction in their wallet:
+
+```text
+2b15d7c280c9f44e1a4f5266c290c7cd547a34427219e0dc9e78c1a277ff498a
+```
+
+The supplied `ZECBID1` memo matches the published bid for
+[`sealed-note-10-zec-reserve-1y0lvlb`](https://zec-pass.vercel.app/auctions/sealed-note-10-zec-reserve-1y0lvlb).
+Its proof commitment was recomputed and its UltraHonk proof independently
+re-verified successfully. The memo is **302 bytes**; the proof is **14,592 bytes**.
+
+The reserve starts at **10 ZEC** in the creation form. The maintainer chose
+**11** for this auction, which is the configured reserve and public proof lower
+bound in the saved record. The auction title retains the starting 10 ZEC value.
+
+The [mainnet evidence record](docs/MAINNET-EVIDENCE.md) includes the exact memo,
+address roles, saved public proof and reproduction steps. Wallet confirmation is
+the maintainer's report; public proof verification does not confirm a shielded
+payment. This milestone covers bid delivery. Settlement payment confirmation
+remains outside the application.
 
 ## How it works
 
@@ -46,9 +70,9 @@ Zcash has no smart contracts, so winner determination and verification happen of
 | Noir circuits (`sealed_bid`, `open_bid`) | ✅ | `circuits/`, `nargo test` 7/7 + 5/5 |
 | Barretenberg UltraHonk (`@aztec/bb.js`) | ✅ | real prove **and** verify in-browser (`lib/proof/auction-proofs.ts`) |
 | ZIP‑321 payment requests | ✅ | bid delivery request with a scannable QR (`lib/zcash/zip321.ts`); the settlement request is built and tested in `lib/zcash/sealed-bid.ts` but not yet shown in the UI |
-| ZIP‑302 text memo | ✅ | sealed-bid envelope, 287 of 512 bytes (`lib/zcash/sealed-bid.ts`) |
+| ZIP‑302 text memo | ✅ | the recorded mainnet envelope is 302 of 512 bytes; length varies with the auction ID (`lib/zcash/sealed-bid.ts`) |
 | Unified + Sapling shielded addresses | ✅ | checksum-validated in the browser **and** on the server, per network; transparent addresses rejected (`lib/zcash/address.ts`) |
-| Zcash mainnet | ✅ | the live demo runs on mainnet: a delivery is a real shielded payment to the seller |
+| Zcash mainnet | ✅ | one wallet-confirmed bid delivery reported by the maintainer; its memo matches the board and the public proof re-verifies ([evidence](docs/MAINNET-EVIDENCE.md)) |
 | Zcash smart contracts | ❌ | Zcash has none by design — verification and settlement are off-chain/in-browser |
 | On-chain settlement confirmation | ❌ (reasoned) | no contract to read it; confirming a shielded payment needs the seller's viewing key + a light client (see `docs/SECURITY.md`) |
 
@@ -72,7 +96,8 @@ You can watch all three refuse, live, in the Playground (`/playground`).
 | Sealed-bid proof size | ~14.6 KB | seal a bid in `/playground` |
 | In-browser prove **+** verify | ~10–25 s cold, faster once the CRS caches | `/playground` |
 | Full round trip (create → seal → board → re-verify → reveal → settle) | passes in a real browser, on testnet and mainnet builds | the [live demo](https://zec-pass.vercel.app), or `npm run dev` and walk it |
-| Delivery memo | 287 of 512 bytes | the counter under "Shielded memo" after sealing |
+| Mainnet bid delivery | one manual wallet confirmation reported on 2026-10-23; matching public proof independently re-verified | [transaction, memo and saved proof](docs/MAINNET-EVIDENCE.md) |
+| Delivery memo | 302 of 512 bytes for the recorded mainnet bid; length varies with the auction ID | the counter under "Shielded memo" after sealing |
 | Delivery QR | decodes back to the exact ZIP‑321 request, at normal and enlarged size, light and dark theme | seal a bid and scan it with any Zcash wallet |
 | Seed proofs carry the right network tag | checked for both networks on every test run | `npm test` (`lib/board/seed-data.test.ts`) |
 
@@ -127,6 +152,7 @@ Both are Noir `1.0.0-beta.9`, proved and verified with UltraHonk. `sealed_bid` p
 | `lib/domain/` | auction model: lifecycle, first-price and Vickrey resolution |
 | `lib/board/` | public board store + committed demo seed |
 | `circuits/`, `artifacts/noir/` | the two circuits, tests, and compiled artifacts |
+| `docs/MAINNET-EVIDENCE.md`, `docs/evidence/` | manual mainnet delivery report, exact memo, address roles and saved public proof |
 
 ## Known limits (stated plainly)
 
@@ -134,7 +160,9 @@ Full detail in [`docs/SECURITY.md`](docs/SECURITY.md). In short: publishing a se
 
 ## For judges
 
-Start with [`DEMO.md`](DEMO.md). There are two ways in, and the first needs nothing installed.
+Start with [`DEMO.md`](DEMO.md). The [recorded mainnet bid](docs/MAINNET-EVIDENCE.md)
+lets you inspect a completed manual delivery report and re-verify its saved
+public proof. There are two ways to try the app, and the first needs nothing installed.
 
 **No wallet (about a minute).** Open the [live demo](https://zec-pass.vercel.app/playground), seal a bid, then **try to cheat** (bid below the reserve, or reveal a different number) and watch the circuit refuse. On the board at `/`, verify any sealed bid's proof in your own browser, then reveal and settle. To see what the seller receives without sending anything, seal a bid and click **Proof bundle**: the `memo` field is the exact text the shielded payment carries — auction id, commitment, binding, nullifier and proof commitment, and no amount.
 

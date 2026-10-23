@@ -27,6 +27,11 @@ What is hidden, and by what:
   address, and read the memo arrive. On a block explorer that transaction shows
   no sender, receiver, amount or memo: the track's "participants should not" be
   public, made checkable.
+- One manual mainnet bid delivery is now recorded in the
+  [mainnet evidence](MAINNET-EVIDENCE.md). The maintainer supplied its memo,
+  transaction ID and wallet addresses for publication. Publishing them links
+  this specific test transaction to the auction; the disclosure is explicit
+  and is not data recovered from the shielded chain.
 - The **bidder's secret and per-auction blinding** never leave the browser. They
   live in `localStorage` and feed the binding and the nullifier; losing them
   means a sealed bid can no longer be revealed, which is the honest cost of
@@ -64,6 +69,14 @@ for it to read). These are the honest edges of a one-window build, and
 It runs, and the parts that matter are tested:
 
 - It is live on **Zcash mainnet**, not a testnet a judge would need a faucet for.
+- On **2026-10-23**, the maintainer reported completing one mainnet auction bid
+  and confirming its transaction in their wallet. The supplied 302-byte memo
+  matches the board; the proof commitment was recomputed and the 14,592-byte
+  UltraHonk proof independently re-verified. The
+  [evidence record](MAINNET-EVIDENCE.md) includes the transaction ID, exact memo,
+  address roles and a saved proof with reproduction steps. This is a manual
+  bid-delivery milestone; automatic receipt detection and settlement payment
+  confirmation remain outside the app.
 - The full round trip, create to seal to publish to verify to reveal to settle,
   passes in a real browser on both the testnet and the mainnet build.
 - The delivery QR is checked the way a wallet reads it: a browser test screenshots
